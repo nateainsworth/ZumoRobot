@@ -1,3 +1,6 @@
+
+
+
 /*
 #include <Wire.h>
 #include <Zumo32U4.h>
@@ -311,6 +314,8 @@ Zumo32U4ButtonB buttonB;
 Zumo32U4Buzzer buzzer;
 Zumo32U4Motors motors;
 Zumo32U4LineSensors lineSensors;
+Zumo32U4ProximitySensors proxSensors;
+
 Zumo32U4IMU imu;
 char action;
 boolean crashed = false;
@@ -319,6 +324,9 @@ boolean manualTakeOver = false;
 boolean left_track = false;
 boolean false_track = false;
 
+bool proxLeftActive;
+bool proxFrontActive;
+bool proxRightActive;
 
 #define NUM_SENSORS 3
 unsigned int lineSensorValues[NUM_SENSORS];
@@ -527,7 +535,7 @@ void setup()
   //motors.flipRightMotor(true);
 
   lineSensors.initThreeSensors();
-
+  proxSensors.initThreeSensors();
   //buttonB.waitForButton();
   //lineSensorSetup();
   //calibrateSensors();
@@ -543,16 +551,28 @@ void setup()
 
 void loop()
 {
-  
+
+     // Send IR pulses and read the proximity sensors.
+    proxSensors.read();
+
+    // Just read the proximity sensors without sending pulses.
+    proxLeftActive = proxSensors.readBasicLeft();
+    proxFrontActive = proxSensors.readBasicFront();
+    proxRightActive = proxSensors.readBasicRight();
+
+      Serial1.println(" ");
+      Serial1.print(String(proxLeftActive) + " ");
+      Serial1.print(String(proxFrontActive) + " " );
+      Serial1.print(String(proxRightActive) + " " );
 
 
   if(!manualTakeOver){
     lineSensors.read(lineSensorValues);
     if(!crashed){
-      Serial1.println(" ");
-      Serial1.print(String(lineSensorValues[0]) + " ");
-      Serial1.print(String(lineSensorValues[1]) + " " ); 
-      Serial1.print(String(lineSensorValues[2]) + " " );
+      //Serial1.println(" ");
+      //Serial1.print(String(lineSensorValues[0]) + " ");
+      //Serial1.print(String(lineSensorValues[1]) + " " ); 
+      //Serial1.print(String(lineSensorValues[2]) + " " );
       
     }
 
