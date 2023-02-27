@@ -9,22 +9,22 @@ backs up and turns. */
 
 // This might need to be tuned for different lighting conditions,
 // surfaces, etc.
-#define QTR_THRESHOLD_TRACK_LEFT    210  // microseconds
-#define QTR_THRESHOLD_TRACK_RIGHT   300  // microseconds
+int QTR_THRESHOLD_TRACK_LEFT  =  210;  // microseconds
+int QTR_THRESHOLD_TRACK_RIGHT =  300; // microseconds
 
-#define QTR_THRESHOLD_LEFT    300  // microseconds
-#define QTR_THRESHOLD_MIDDLE  130  // microseconds
-#define QTR_THRESHOLD_RIGHT   400  // microseconds
+int QTR_THRESHOLD_LEFT   = 400; // microseconds
+int QTR_THRESHOLD_MIDDLE = 100; // microseconds
+int QTR_THRESHOLD_RIGHT  = 400; // microseconds
 
 // These might need to be tuned for different motor types.
-#define REVERSE_SPEED     200  // 0 is stopped, 400 is full speed
-#define TURN_SPEED        200
-#define FORWARD_SPEED     200
+#define REVERSE_SPEED     100  // 0 is stopped, 400 is full speed
+#define TURN_SPEED        100
+int FORWARD_SPEED      =  100;
 #define REVERSE_DURATION  200  // ms
 #define TURN_DURATION     300  // ms
 
 // Motor speed when turning.  400 is the max speed.
-const uint16_t turnSpeed = 200;
+const uint16_t turnSpeed = 100;
 // For angles measured by the gyro, our convention is that a
 // value of (1 << 29) represents 45 degrees.  This means that a
 // uint32_t can represent any angle between 0 and 360.
@@ -48,9 +48,10 @@ Zumo32U4IMU imu;
 char action;
 boolean crashed = false;
 int speed = 100;
-boolean manualTakeOver = true;
+boolean manualTakeOver = false;
 boolean left_track = false;
 boolean false_track = false;
+boolean motor_on = true;
 
 bool proxLeftActive;
 bool proxFrontActive;
@@ -79,6 +80,12 @@ void printLineSensors(int line1, int line2, int line3){
   );
   Serial1.print(buffer);
 
+}
+
+void drive(int leftMotor,int rightMotor){
+  if(motor_on){
+    motors.setSpeeds(leftMotor, rightMotor);
+  }
 }
 
 
@@ -137,23 +144,6 @@ void retrieveSerial() {
         }
     }
 }  
-//void calibrateSensors()
-//{
-  //display.clear();
-
-  // Wait 1 second and then begin automatic sensor calibration
-  // by rotating in place to sweep the sensors over the line
- // delay(1000);
- // for(uint16_t i = 0; i < 120; i++){
- //   if (i > 30 && i <= 90){
- //     motors.setSpeeds(-200, 200);
- //   }else{
-  //    motors.setSpeeds(200, -200);
-  //  }
-  //  lineSensors.calibrate();
- // }
-  //motors.setSpeeds(0, 0);
-//}
 
 // Calibrates the line sensors by turning left and right, then
 // shows a bar graph of calibrated sensor readings on the display.
@@ -172,7 +162,7 @@ void lineSensorSetup()
   // then you will know before actually starting the robot.
 
   //turnSensorReset();
-
+  
   // Turn to the left 90 degrees.
   motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
   while((int32_t)turnAngle < turnAngle45 * 2)
@@ -206,6 +196,7 @@ void lineSensorSetup()
 
 
 
+
 void turn(char dir, int angle)
 {
 
@@ -217,7 +208,7 @@ void turn(char dir, int angle)
   {
   case 'B':
     // Turn left 125 degrees using the gyro.
-    motors.setSpeeds(-turnSpeed, turnSpeed);
+    drive(-turnSpeed, turnSpeed);
     while((int32_t)turnAngle < turnAngle45 * 3)
     {
       turnSensorUpdate();
@@ -228,11 +219,11 @@ void turn(char dir, int angle)
   case 'L':
     // Turn left 45 degrees using the gyro.
     //Serial1.println((int32_t)turnAngle);
-    Serial1.println("<E:Turn Left>");
-    motors.setSpeeds(-turnSpeed, turnSpeed);
+    //Serial1.println("<E:Turn Left>");
+    drive(-turnSpeed, turnSpeed);
     while((int32_t)turnAngle < turnAngle1 * angle)//((int32_t)turnAngle < angle)//
     {
-      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+      //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       //Serial1.println(turnAngle);
       turnSensorUpdate();
     }
@@ -240,23 +231,23 @@ void turn(char dir, int angle)
     break;
 
   case 'R':
-    Serial1.println("<E:Turn Right>");
+    //Serial1.println("<E:Turn Right>");
 
-    motors.setSpeeds(turnSpeed, -turnSpeed);
+    drive(turnSpeed, -turnSpeed);
     
     while((int32_t)turnAngle > -turnAngle1 * angle)
     {
-      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+      //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       turnSensorUpdate();
     }
     sensorIndex = 3;
     break;
   case 'F':
     // Turn right 45 degrees using the gyro.
-    motors.setSpeeds(turnSpeed, -turnSpeed);
+    drive(turnSpeed, -turnSpeed);
     while((int32_t)turnAngle > -turnAngle45)
     {
-      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+      //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       turnSensorUpdate();
     }
     sensorIndex = 1;
@@ -266,7 +257,7 @@ void turn(char dir, int angle)
     // This should not happen.
     return;
   }
-  motors.setSpeeds(0,0);
+  drive(0,0);
 
   // Turn the rest of the way using the line sensors.
   //while(1)
@@ -295,15 +286,23 @@ void printReadingsToSerial()
     proxSensors.countsRightWithRightLeds()
   );
   Serial1.print(buffer);
+  Serial.print(buffer);
 }
 
-void parseCommand (){
-  //char * strtokIndx;
+char tempChars[32]; 
 
-  //strtokIndx = strtok(incomingChars, ":");      // get the first part - the string
-  //strcpy(commandType, strtokIndx);
+void parseSliders ( int *sliders, int quantity){
 
-  commandType = incomingChars[0];
+  char* ptr = strtok(incomingChars, ",");
+  sliders[0] = atol(ptr);
+  ptr = strtok(NULL, ",");
+  sliders[1] = atol(ptr);
+
+  if(quantity = 3){
+    ptr = strtok(NULL, ",");
+    sliders[2] = atol(ptr);
+  }
+
 }
 
 void setup()
@@ -313,7 +312,7 @@ void setup()
   // Uncomment if necessary to correct motor directions:
   //motors.flipLeftMotor(true);
   //motors.flipRightMotor(true);
-
+  
   lineSensors.initThreeSensors();
 
   proxSensors.initThreeSensors();
@@ -358,9 +357,47 @@ void loop()
 
     //Serial1.println("<E:received>");
 
-  if(commandType == 'W'){
-    //Serial1.println("<E:command W received>");
-  }
+    if(commandType == 'M'){
+
+      switch (incomingChars[0]){
+          case '1':
+            manualTakeOver = true;
+            break;
+          case '2':
+            break;
+          case '3':
+            manualTakeOver = false;
+            break;
+          case '4':
+            motor_on = !motor_on;
+            Serial.print("motor changed");
+            break;
+          default:
+            manualTakeOver = true;
+      }
+
+      //Serial1.println("<E:command W received>");
+    }
+
+    if(commandType == 'U'){
+       FORWARD_SPEED = (int)incomingChars;
+    }
+    
+    if(commandType == 'I'){
+      int sliders [2];
+      parseSliders(sliders, 2);
+      QTR_THRESHOLD_TRACK_LEFT = sliders[0];
+      QTR_THRESHOLD_TRACK_RIGHT = sliders[1];
+    }
+
+    if(commandType == 'O'){
+      int sliders [3];
+      parseSliders(sliders, 3);
+      QTR_THRESHOLD_LEFT  = sliders[0];
+      QTR_THRESHOLD_MIDDLE = sliders[1];
+      QTR_THRESHOLD_RIGHT = sliders[2];
+    }
+
   }
   //if(incomingMessage){
   //  Serial.println("Type: ");
@@ -368,7 +405,7 @@ void loop()
   //  Serial.println(incomingChars);
   //  incomingMessage = false;
  // }
-  static uint16_t lastSampleTime = 0;
+  /*static uint16_t lastSampleTime = 0;
   // checks when last updated and holds off for less frequent refreshing
   if ((uint16_t)(millis() - lastSampleTime) >= 100)
   {
@@ -376,12 +413,15 @@ void loop()
     proxSensors.read();
     printReadingsToSerial();
   }
+*/
+
+  lineSensors.read(lineSensorValues);
+
+  printLineSensors(lineSensorValues[0], lineSensorValues[1],lineSensorValues[2]);      
+
 
   if(!manualTakeOver){
-    lineSensors.read(lineSensorValues);
-    if(!crashed){
-      printLineSensors(lineSensorValues[0], lineSensorValues[1],lineSensorValues[2]);      
-    }
+
 
     //delay(1000);
 
@@ -391,9 +431,10 @@ void loop()
       ledRed(1);
       ledYellow(1);
       if(!crashed){
-      Serial1.println("<E:Crashed Middle>");}
+      //Serial1.println("<E:Crashed Middle>");
+      }
       crashed = true;
-      motors.setSpeeds(0, 0);
+      drive(0, 0);
       turn('F', 1);
     } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT) {// CHECK LEFT
       ledGreen(1);
@@ -405,7 +446,9 @@ void loop()
         ledYellow(1);
         
         
-        if(!crashed){Serial1.println("<E:Crashed Left>");}
+        if(!crashed){
+          //Serial1.println("<E:Crashed Left>");
+        }
         crashed = true;
         turn('R', 1);
       }else{
@@ -413,7 +456,7 @@ void loop()
 
         crashed = false;
         left_track = true;
-        motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
+        drive(FORWARD_SPEED, FORWARD_SPEED);
       }
 
       // If leftmost sensor detects line, reverse and turn to the
@@ -429,7 +472,8 @@ void loop()
       ledYellow(0);
 
       if(!crashed){
-      Serial1.println("<E:Crashed Right>");}
+      //Serial1.println("<E:Crashed Right>");
+      }
       crashed = true;
       turn('L', 1);
 
@@ -452,7 +496,7 @@ void loop()
       ledRed(0);
       ledYellow(0);
       // Otherwise, go straight.
-      motors.setSpeeds(FORWARD_SPEED, FORWARD_SPEED);
+      drive(FORWARD_SPEED, FORWARD_SPEED);
       }
     }
     //todo add else crashed back in
@@ -472,28 +516,28 @@ void loop()
           ledYellow(1);
           motors.setLeftSpeed(speed);
           motors.setRightSpeed(speed*-1);
-          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+
           delay(70);
           break;
         case 'S':
           ledYellow(1);
           motors.setLeftSpeed(speed*-1);
           motors.setRightSpeed(speed*-1);
-          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+
           delay(70);
           break;
         case 'D':
           ledRed(1);
           motors.setRightSpeed(speed);
           motors.setLeftSpeed(speed*-1);
-          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+
           delay(70);
           break;
         case 'W':
           ledRed(1);
           motors.setLeftSpeed(speed);
           motors.setRightSpeed(speed);
-          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+
           delay(70);
           break;
         default:
