@@ -25,30 +25,28 @@ int FORWARD_SPEED      =  100;
 
 // Motor speed when turning.  400 is the max speed.
 const uint16_t turnSpeed = 100;
-// For angles measured by the gyro, our convention is that a
-// value of (1 << 29) represents 45 degrees.  This means that a
-// uint32_t can represent any angle between 0 and 360.
-//const int32_t gyroAngle45 = 0x20000000;
 
 // Motor speed when turning during line sensor calibration.
 const uint16_t calibrationSpeed = 200;
 
-// Change next line to this if you are using the older Zumo 32U4
-// with a black and green LCD display:
-// Zumo32U4LCD display;
-Zumo32U4OLED display;
 
 Zumo32U4ButtonB buttonB;
 Zumo32U4Buzzer buzzer;
 Zumo32U4Motors motors;
 Zumo32U4LineSensors lineSensors;
 Zumo32U4ProximitySensors proxSensors;
-
+Zumo32U4Encoders encoders;
 Zumo32U4IMU imu;
+
+const char encoderErrorLeft[] PROGMEM = "!<c2";
+const char encoderErrorRight[] PROGMEM = "!<e2";
+int errorPrinted = 0;
+
+
 char action;
 boolean crashed = false;
 int speed = 100;
-boolean manualTakeOver = false;
+boolean manualTakeOver = true;
 boolean left_track = false;
 boolean false_track = false;
 boolean motor_on = true;
@@ -57,8 +55,14 @@ bool proxLeftActive;
 bool proxFrontActive;
 bool proxRightActive;
 
+
 #define NUM_SENSORS 3
 unsigned int lineSensorValues[NUM_SENSORS];
+
+
+unsigned long startMillis;  //some global variables available anywhere in the program
+unsigned long currentMillis;
+const unsigned long period = 500; 
 
 #include "Turnsensor.h"
 
@@ -71,16 +75,38 @@ void printGyro(int angle){
 
 }
 
+void printConsoleVariable(String variable){
+  static char buffer[80];
+  sprintf(buffer, "<E:%s>",
+    variable.c_str()
+  );
+  Serial1.println(buffer);
+
+}
+
 void printLineSensors(int line1, int line2, int line3){
-  static char buffer[32]; 
+  static char buffer[80]; 
   sprintf(buffer, "<L:%d,%d,%d>",
     line1,
     line2,
     line3
   );
-  Serial1.print(buffer);
+  Serial1.println(buffer);
 
 }
+
+void printEncoders(int countsLeft, int countsRight, bool errorLeft, bool errorRight){
+  static char buffer[80]; 
+  sprintf(buffer, "<R:%d,%d,%d,%d>",
+    countsLeft,
+    countsRight,
+    errorLeft,
+    errorRight
+  );
+  Serial1.println(buffer);
+  Serial.println(buffer);
+}
+
 
 void drive(int leftMotor,int rightMotor){
   if(motor_on){
@@ -285,8 +311,8 @@ void printReadingsToSerial()
     proxSensors.countsRightWithLeftLeds(),
     proxSensors.countsRightWithRightLeds()
   );
-  Serial1.print(buffer);
-  Serial.print(buffer);
+  Serial1.println(buffer);
+  Serial.println(buffer);
 }
 
 char tempChars[32]; 
@@ -309,6 +335,16 @@ void setup()
 {
   Serial.begin(9600);
   Serial1.begin(9600);
+
+
+  bool usbPower = usbPowerPresent();
+
+  uint16_t batteryLevel = readBatteryMillivolts();
+
+  if(!usbPower){
+    printConsoleVariable(("Battery Level " + String(batteryLevel) + " mv"));
+  }
+
   // Uncomment if necessary to correct motor directions:
   //motors.flipLeftMotor(true);
   //motors.flipRightMotor(true);
@@ -330,16 +366,19 @@ void setup()
   // presses button A.
 
 //TODO UNCOMMENT
-  
+  /*
   buttonB.waitForButton();
   turnSensorSetup();
   
   lineSensorSetup();
-  buttonB.waitForButton();
-
   
-
+*/
+  
+buttonB.waitForButton();
+startMillis = millis(); 
 }
+
+
 
 
 void loop()
@@ -399,12 +438,7 @@ void loop()
     }
 
   }
-  //if(incomingMessage){
-  //  Serial.println("Type: ");
-  //  Serial.println(commandType);
-  //  Serial.println(incomingChars);
-  //  incomingMessage = false;
- // }
+
   /*static uint16_t lastSampleTime = 0;
   // checks when last updated and holds off for less frequent refreshing
   if ((uint16_t)(millis() - lastSampleTime) >= 100)
@@ -415,9 +449,47 @@ void loop()
   }
 */
 
+
+
   lineSensors.read(lineSensorValues);
 
-  printLineSensors(lineSensorValues[0], lineSensorValues[1],lineSensorValues[2]);      
+  //printLineSensors(lineSensorValues[0], lineSensorValues[1],lineSensorValues[2]); 
+
+  currentMillis = millis();  //get the current "time" (actually the number of milliseconds since the program started)
+  if (currentMillis - startMillis >= period)  //test whether the period has elapsed
+  {
+
+    startMillis = currentMillis;  //IMPORTANT to save the start time of the current LED state.
+
+
+    int16_t countsLeft = encoders.getCountsLeft();
+    int16_t countsRight = encoders.getCountsRight();
+
+    bool errorLeft = encoders.checkErrorLeft();
+    bool errorRight = encoders.checkErrorRight();;
+
+    if(errorLeft || errorRight){
+      if(errorPrinted == 0){
+        if (errorLeft)
+        { 
+          errorPrinted = 10;
+          printConsoleVariable("Left Encoder Error");
+        }
+
+        if (errorRight)
+        {
+          errorPrinted = 10;
+          printConsoleVariable("Right Encoder Error");
+        }
+      }else{
+        errorPrinted--;
+      }
+    }
+
+    printEncoders(countsLeft, countsRight, errorLeft, errorRight);
+
+  }
+
 
 
   if(!manualTakeOver){
@@ -431,7 +503,7 @@ void loop()
       ledRed(1);
       ledYellow(1);
       if(!crashed){
-      //Serial1.println("<E:Crashed Middle>");
+        printConsoleVariable("Crashed Middle");
       }
       crashed = true;
       drive(0, 0);
@@ -447,7 +519,7 @@ void loop()
         
         
         if(!crashed){
-          //Serial1.println("<E:Crashed Left>");
+          printConsoleVariable("Crashed Left");
         }
         crashed = true;
         turn('R', 1);
@@ -472,6 +544,7 @@ void loop()
       ledYellow(0);
 
       if(!crashed){
+        printConsoleVariable("Crashed Right");
       //Serial1.println("<E:Crashed Right>");
       }
       crashed = true;
