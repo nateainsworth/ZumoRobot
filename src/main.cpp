@@ -1,276 +1,3 @@
-
-
-
-/*
-#include <Wire.h>
-#include <Zumo32U4.h>
-
-Zumo32U4Motors motors;
-Zumo32U4Buzzer buzzer;
-Zumo32U4ButtonA buttonA;
-Zumo32U4ButtonB buttonB;
-Zumo32U4LineSensors lineSensors;
-char action;
-
-
-int speed = 100;
-
-
-void calibrateSensors()
-{
-  display.clear();
-
-  // Wait 1 second and then begin automatic sensor calibration
-  // by rotating in place to sweep the sensors over the line
-  delay(1000);
-  for(uint16_t i = 0; i < 120; i++)
-  {
-    if (i > 30 && i <= 90)
-    {
-      motors.setSpeeds(-200, 200);
-    }
-    else
-    {
-      motors.setSpeeds(200, -200);
-    }
-
-    lineSensors.calibrate();
-  }
-  motors.setSpeeds(0, 0);
-}
-
-void setup(){
-  Serial1.begin(9600);
-  Serial.begin(9600);
-  
-
-  buttonB.waitForButton();
-  calibrateSensors();
-  buttonB.waitForButton();
-
-  buzzer.play("L16 cdegreg4");
-  while(buzzer.isPlaying());
-  
-}
-
-void loop(){
-
-  if (Serial1.available() > 0){
-    action = Serial1.read();
-    //Serial1.print("I received: ");
-    //Serial1.println(action);
-
-    Serial1.write(1);
-
-    switch (action){
-      case 'a':
-        ledYellow(1);
-        motors.setLeftSpeed(speed);
-        motors.setRightSpeed(speed*-1);
-
-        break;
-      case 's':
-        ledYellow(1);
-        motors.setLeftSpeed(speed*-1);
-        motors.setRightSpeed(speed*-1);
-  
-        break;
-      case 'd':
-        ledRed(1);
-        motors.setRightSpeed(speed);
-        motors.setLeftSpeed(speed*-1);
-
-        break;
-      case 'w':
-        ledRed(1);
-        motors.setLeftSpeed(speed);
-        motors.setRightSpeed(speed);
-
-        break;
-      default:
-        motors.setLeftSpeed(0);
-        motors.setRightSpeed(0);
-        ledYellow(0);
-        ledRed(0);
-    }
-
-
-
-  }
-
-}
-*/
-
-/* This example uses the line sensors on the Zumo 32U4 to follow
-a black line on a white background, using a PID-based algorithm.
-It works decently on courses with smooth, 6" radius curves and
-has been tested with Zumos using 75:1 HP motors.  Modifications
-might be required for it to work well on different courses or
-with different motors.
-
-This demo requires a Zumo 32U4 Front Sensor Array to be
-connected, and jumpers on the front sensor array must be
-installed in order to connect pin 4 to DN4 and pin 20 to DN2. */
-/*
-#include <Wire.h>
-#include <Zumo32U4.h>
-
-// This is the maximum speed the motors will be allowed to turn.
-// A maxSpeed of 400 lets the motors go at top speed.  Decrease
-// this value to impose a speed limit.
-const uint16_t maxSpeed = 200;
-
-Zumo32U4Buzzer buzzer;
-Zumo32U4LineSensors lineSensors;
-Zumo32U4Motors motors;
-Zumo32U4ButtonB buttonB;
-
-// Change next line to this if you are using the older Zumo 32U4
-// with a black and green LCD display:
-// Zumo32U4LCD display;
-Zumo32U4OLED display;
-
-int16_t lastError = 0;
-
-#define NUM_SENSORS 5
-unsigned int lineSensorValues[NUM_SENSORS];
-
-// Sets up special characters for the display so that we can show
-// bar graphs.
-void loadCustomCharacters()
-{
-  static const char levels[] PROGMEM = {
-    0, 0, 0, 0, 0, 0, 0, 63, 63, 63, 63, 63, 63, 63
-  };
-  display.loadCustomCharacter(levels + 0, 0);  // 1 bar
-  display.loadCustomCharacter(levels + 1, 1);  // 2 bars
-  display.loadCustomCharacter(levels + 2, 2);  // 3 bars
-  display.loadCustomCharacter(levels + 3, 3);  // 4 bars
-  display.loadCustomCharacter(levels + 4, 4);  // 5 bars
-  display.loadCustomCharacter(levels + 5, 5);  // 6 bars
-  display.loadCustomCharacter(levels + 6, 6);  // 7 bars
-}
-
-void printBar(uint8_t height)
-{
-  if (height > 8) { height = 8; }
-  const char barChars[] = {' ', 0, 1, 2, 3, 4, 5, 6, (char)255};
-  display.print(barChars[height]);
-}
-
-void calibrateSensors()
-{
-  display.clear();
-
-  // Wait 1 second and then begin automatic sensor calibration
-  // by rotating in place to sweep the sensors over the line
-  delay(1000);
-  for(uint16_t i = 0; i < 120; i++)
-  {
-    if (i > 30 && i <= 90)
-    {
-      motors.setSpeeds(-200, 200);
-    }
-    else
-    {
-      motors.setSpeeds(200, -200);
-    }
-
-    lineSensors.calibrate();
-  }
-  motors.setSpeeds(0, 0);
-}
-
-// Shows a bar graph of sensor readings on the display.
-// Returns after the user presses A.
-void showReadings()
-{
-  display.clear();
-
-  while(!buttonB.getSingleDebouncedPress())
-  {
-    lineSensors.readCalibrated(lineSensorValues);
-
-    display.gotoXY(0, 0);
-    for (uint8_t i = 0; i < NUM_SENSORS; i++)
-    {
-      uint8_t barHeight = map(lineSensorValues[i], 0, 1000, 0, 8);
-      printBar(barHeight);
-    }
-  }
-}
-
-void setup()
-{
-  // Uncomment if necessary to correct motor directions:
-  //motors.flipLeftMotor(true);
-  //motors.flipRightMotor(true);
-
-  lineSensors.initFiveSensors();
-
-  loadCustomCharacters();
-
-  // Play a little welcome song
-  buzzer.play(">g32>>c32");
-
-  // Wait for button A to be pressed and released.
-  display.clear();
-  display.print(F("Press A"));
-  display.gotoXY(0, 1);
-  display.print(F("to calib"));
-  buttonB.waitForButton();
-
-  calibrateSensors();
-
-  showReadings();
-
-  // Play music and wait for it to finish before we start driving.
-  display.clear();
-  display.print(F("Go!"));
-  buzzer.play("L16 cdegreg4");
-  while(buzzer.isPlaying());
-}
-
-void loop()
-{
-  // Get the position of the line.  Note that we *must* provide
-  // the "lineSensorValues" argument to readLine() here, even
-  // though we are not interested in the individual sensor
-  // readings.
-  int16_t position = lineSensors.readLine(lineSensorValues);
-
-  // Our "error" is how far we are away from the center of the
-  // line, which corresponds to position 2000.
-  int16_t error = position - 2000;
-
-  // Get motor speed difference using proportional and derivative
-  // PID terms (the integral term is generally not very useful
-  // for line following).  Here we are using a proportional
-  // constant of 1/4 and a derivative constant of 6, which should
-  // work decently for many Zumo motor choices.  You probably
-  // want to use trial and error to tune these constants for your
-  // particular Zumo and line course.
-  int16_t speedDifference = error / 4 + 6 * (error - lastError);
-
-  lastError = error;
-
-  // Get individual motor speeds.  The sign of speedDifference
-  // determines if the robot turns left or right.
-  int16_t leftSpeed = (int16_t)maxSpeed + speedDifference;
-  int16_t rightSpeed = (int16_t)maxSpeed - speedDifference;
-
-  // Constrain our motor speeds to be between 0 and maxSpeed.
-  // One motor will always be turning at maxSpeed, and the other
-  // will be at maxSpeed-|speedDifference| if that is positive,
-  // else it will be stationary.  For some applications, you
-  // might want to allow the motor speed to go negative so that
-  // it can spin in reverse.
-  leftSpeed = constrain(leftSpeed, 0, (int16_t)maxSpeed);
-  rightSpeed = constrain(rightSpeed, 0, (int16_t)maxSpeed);
-
-  motors.setSpeeds(leftSpeed, rightSpeed);
-}*/
-
 /** This example uses the Zumo's line sensors to detect the white
 border around a sumo ring.  When the border is detected, it
 backs up and turns. */
@@ -278,6 +5,7 @@ backs up and turns. */
 
 #include <Wire.h>
 #include <Zumo32U4.h>
+
 
 // This might need to be tuned for different lighting conditions,
 // surfaces, etc.
@@ -320,7 +48,7 @@ Zumo32U4IMU imu;
 char action;
 boolean crashed = false;
 int speed = 100;
-boolean manualTakeOver = false;
+boolean manualTakeOver = true;
 boolean left_track = false;
 boolean false_track = false;
 
@@ -333,45 +61,99 @@ unsigned int lineSensorValues[NUM_SENSORS];
 
 #include "Turnsensor.h"
 
-void waitForButtonAndCountDown()
-{
-  ledYellow(1);
-  display.clear();
-  display.print(F("Press B"));
+void printGyro(int angle){
+  static char buffer[10];
+  sprintf(buffer, "<G:%d>",
+    angle
+  );
+  Serial1.print(buffer);
 
-  buttonB.waitForButton();
-
-  ledYellow(0);
-  display.clear();
-
-  // Play audible countdown.
-  for (int i = 0; i < 3; i++){
-    delay(1000);
-    buzzer.playNote(NOTE_G(3), 200, 15);
-  }
-
-  delay(1000);
-  buzzer.playNote(NOTE_G(4), 500, 15);
-  delay(1000);
 }
 
-/*void calibrateSensors()
-{
-  display.clear();
+void printLineSensors(int line1, int line2, int line3){
+  static char buffer[32]; 
+  sprintf(buffer, "<L:%d,%d,%d>",
+    line1,
+    line2,
+    line3
+  );
+  Serial1.print(buffer);
+
+}
+
+
+// Modified a version of reading different incoming information from serial
+// Robin2. (2014, December 1). Serial input basics. Arduino Forum. Retrieved February 26, 2023, from https://forum.arduino.cc/t/serial-input-basics/278284/73 
+const byte numChars = 32;
+char incomingChars[numChars]; // an array to store the received data
+boolean incomingMessage = false;
+char commandType;//[32] = {0};
+//String commandType;
+
+void retrieveSerial() {
+  static boolean recvInProgress = false;
+  static boolean commandReceived = false;
+
+    static byte ndx = 0;
+    char rc;
+    
+
+    while (Serial1.available() > 0 && incomingMessage == false) {
+        rc = Serial1.read();
+
+        if (recvInProgress == true) {
+          // if doesn't = the end  of message incoming ---
+            if (rc != '>') {
+               /*if(commandReceived){
+                // only add message after : don't include :
+                if(rc != ':' ){*/
+                if(!commandReceived){
+                    commandType = rc;
+                    commandReceived = true;
+
+                }else{
+                  if(rc != ':' ){
+                    incomingChars[ndx] = rc;
+                    ndx++;
+                    if (ndx >= numChars) {
+                        ndx = numChars - 1;
+                    }
+                  }
+                }
+            }
+            else {
+              
+                incomingChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                incomingMessage = true;
+                commandReceived = false;
+                
+            }
+        }
+        
+        else if (rc == '<') {
+            recvInProgress = true;
+        }
+    }
+}  
+//void calibrateSensors()
+//{
+  //display.clear();
 
   // Wait 1 second and then begin automatic sensor calibration
   // by rotating in place to sweep the sensors over the line
-  delay(1000);
-  for(uint16_t i = 0; i < 120; i++){
-    if (i > 30 && i <= 90){
-      motors.setSpeeds(-200, 200);
-    }else{
-      motors.setSpeeds(200, -200);
-    }
-    lineSensors.calibrate();
-  }
-  motors.setSpeeds(0, 0);
-}*/
+ // delay(1000);
+ // for(uint16_t i = 0; i < 120; i++){
+ //   if (i > 30 && i <= 90){
+ //     motors.setSpeeds(-200, 200);
+ //   }else{
+  //    motors.setSpeeds(200, -200);
+  //  }
+  //  lineSensors.calibrate();
+ // }
+  //motors.setSpeeds(0, 0);
+//}
 
 // Calibrates the line sensors by turning left and right, then
 // shows a bar graph of calibrated sensor readings on the display.
@@ -395,6 +177,7 @@ void lineSensorSetup()
   motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
   while((int32_t)turnAngle < turnAngle45 * 2)
   {
+    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
     lineSensors.calibrate();
     turnSensorUpdate();
   }
@@ -403,6 +186,7 @@ void lineSensorSetup()
   motors.setSpeeds(calibrationSpeed, -calibrationSpeed);
   while((int32_t)turnAngle > -turnAngle45 * 2)
   {
+    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
     lineSensors.calibrate();
     turnSensorUpdate();
   }
@@ -411,46 +195,13 @@ void lineSensorSetup()
   motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
   while((int32_t)turnAngle < 0)
   {
+    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
     lineSensors.calibrate();
     turnSensorUpdate();
   }
 
   // Stop the motors.
   motors.setSpeeds(0, 0);
-}
-
-void move(char direction){
-  switch (direction){
-      case 'a':
-        ledYellow(1);
-        motors.setLeftSpeed(speed);
-        motors.setRightSpeed(speed*-1);
-
-        break;
-      case 's':
-        ledYellow(1);
-        motors.setLeftSpeed(speed*-1);
-        motors.setRightSpeed(speed*-1);
-  
-        break;
-      case 'd':
-        ledRed(1);
-        motors.setRightSpeed(speed);
-        motors.setLeftSpeed(speed*-1);
-
-        break;
-      case 'w':
-        ledRed(1);
-        motors.setLeftSpeed(speed);
-        motors.setRightSpeed(speed);
-
-        break;
-      default:
-        motors.setLeftSpeed(0);
-        motors.setRightSpeed(0);
-        ledYellow(0);
-        ledRed(0);
-    }
 }
 
 
@@ -477,10 +228,11 @@ void turn(char dir, int angle)
   case 'L':
     // Turn left 45 degrees using the gyro.
     //Serial1.println((int32_t)turnAngle);
-    Serial1.println("Turn Left");
+    Serial1.println("<E:Turn Left>");
     motors.setSpeeds(-turnSpeed, turnSpeed);
     while((int32_t)turnAngle < turnAngle1 * angle)//((int32_t)turnAngle < angle)//
     {
+      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       //Serial1.println(turnAngle);
       turnSensorUpdate();
     }
@@ -488,12 +240,13 @@ void turn(char dir, int angle)
     break;
 
   case 'R':
-    Serial1.println("Turn Right");
+    Serial1.println("<E:Turn Right>");
 
     motors.setSpeeds(turnSpeed, -turnSpeed);
     
     while((int32_t)turnAngle > -turnAngle1 * angle)
     {
+      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       turnSensorUpdate();
     }
     sensorIndex = 3;
@@ -503,6 +256,7 @@ void turn(char dir, int angle)
     motors.setSpeeds(turnSpeed, -turnSpeed);
     while((int32_t)turnAngle > -turnAngle45)
     {
+      printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
       turnSensorUpdate();
     }
     sensorIndex = 1;
@@ -517,63 +271,116 @@ void turn(char dir, int angle)
   // Turn the rest of the way using the line sensors.
   //while(1)
   //{
-   /* readSensors();
-    if (aboveLine(sensorIndex))
-    {
-      // We found the line again, so the turn is done.
-      break;
-    }
-    */
+   // readSensors();
+    //if (aboveLine(sensorIndex))
+    //{
+    //  // We found the line again, so the turn is done.
+    //  break;
+    //}
+    
   //}
+}
+
+// Prints a line with all the sensor readings to the serial
+// monitor.
+void printReadingsToSerial()
+{
+  static char buffer[80];
+  sprintf(buffer, "<P:%d,%d,%d,%d,%d,%d>",
+    proxSensors.countsLeftWithLeftLeds(),
+    proxSensors.countsLeftWithRightLeds(),
+    proxSensors.countsFrontWithLeftLeds(),
+    proxSensors.countsFrontWithRightLeds(),
+    proxSensors.countsRightWithLeftLeds(),
+    proxSensors.countsRightWithRightLeds()
+  );
+  Serial1.print(buffer);
+}
+
+void parseCommand (){
+  //char * strtokIndx;
+
+  //strtokIndx = strtok(incomingChars, ":");      // get the first part - the string
+  //strcpy(commandType, strtokIndx);
+
+  commandType = incomingChars[0];
 }
 
 void setup()
 {
+  Serial.begin(9600);
   Serial1.begin(9600);
   // Uncomment if necessary to correct motor directions:
   //motors.flipLeftMotor(true);
   //motors.flipRightMotor(true);
 
   lineSensors.initThreeSensors();
+
   proxSensors.initThreeSensors();
+
+  //proxSensors.setPeriod(420);
+  //proxSensors.setPulseOnTimeUs(421);
+  //proxSensors.setPulseOffTimeUs(578);
+  //uint16_t levels[] = { 4, 15, 32, 55, 85, 120 };
+  //proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
+  
   //buttonB.waitForButton();
   //lineSensorSetup();
   //calibrateSensors();
     // Calibrate the gyro and show readings from it until the user
   // presses button A.
+
+//TODO UNCOMMENT
+  
   buttonB.waitForButton();
   turnSensorSetup();
   
   lineSensorSetup();
   buttonB.waitForButton();
-  //waitForButtonAndCountDown();
+
+  
+
 }
+
 
 void loop()
 {
 
-     // Send IR pulses and read the proximity sensors.
+
+  retrieveSerial();
+  //parseCommand();
+
+  if(incomingMessage){
+    Serial.println("type: ");
+    Serial.println(commandType);
+    Serial.println("Incoming: ");
+    Serial.println(incomingChars);
+
+    //Serial1.println("<E:received>");
+
+  if(commandType == 'W'){
+    //Serial1.println("<E:command W received>");
+  }
+  }
+  //if(incomingMessage){
+  //  Serial.println("Type: ");
+  //  Serial.println(commandType);
+  //  Serial.println(incomingChars);
+  //  incomingMessage = false;
+ // }
+  static uint16_t lastSampleTime = 0;
+  // checks when last updated and holds off for less frequent refreshing
+  if ((uint16_t)(millis() - lastSampleTime) >= 100)
+  {
+    lastSampleTime = millis();
     proxSensors.read();
-
-    // Just read the proximity sensors without sending pulses.
-    proxLeftActive = proxSensors.readBasicLeft();
-    proxFrontActive = proxSensors.readBasicFront();
-    proxRightActive = proxSensors.readBasicRight();
-
-      Serial1.println(" ");
-      Serial1.print(String(proxLeftActive) + " ");
-      Serial1.print(String(proxFrontActive) + " " );
-      Serial1.print(String(proxRightActive) + " " );
-
+    printReadingsToSerial();
+  }
 
   if(!manualTakeOver){
     lineSensors.read(lineSensorValues);
     if(!crashed){
-      //Serial1.println(" ");
-      //Serial1.print(String(lineSensorValues[0]) + " ");
-      //Serial1.print(String(lineSensorValues[1]) + " " ); 
-      //Serial1.print(String(lineSensorValues[2]) + " " );
-      
+      printLineSensors(lineSensorValues[0], lineSensorValues[1],lineSensorValues[2]);      
     }
 
     //delay(1000);
@@ -584,7 +391,7 @@ void loop()
       ledRed(1);
       ledYellow(1);
       if(!crashed){
-      Serial1.println("Crashed Middle");}
+      Serial1.println("<E:Crashed Middle>");}
       crashed = true;
       motors.setSpeeds(0, 0);
       turn('F', 1);
@@ -598,7 +405,7 @@ void loop()
         ledYellow(1);
         
         
-        if(!crashed){Serial1.println("Crashed Left");}
+        if(!crashed){Serial1.println("<E:Crashed Left>");}
         crashed = true;
         turn('R', 1);
       }else{
@@ -622,7 +429,7 @@ void loop()
       ledYellow(0);
 
       if(!crashed){
-      Serial1.println("Crashed Right");}
+      Serial1.println("<E:Crashed Right>");}
       crashed = true;
       turn('L', 1);
 
@@ -653,35 +460,41 @@ void loop()
     //TODO PUT CONTROL MOVEMENT INSIDE IF STOPPING IT FROM BEING CONTROLLED WHEN AUTOMATED 
   //}
   }else{
-    if (Serial1.available() > 0){
-      action = Serial1.read();
-      Serial1.print("I received: ");
-      Serial1.println(action);
+
+    if(incomingMessage){
+      //Serial.println("Type: ");
+      ///Serial.println(commandType);
+      //Serial.println(incomingChars);
 
 
-      switch (action){
-        case 'a':
+      switch (commandType){
+        case 'A':
           ledYellow(1);
           motors.setLeftSpeed(speed);
           motors.setRightSpeed(speed*-1);
-
+          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+          delay(70);
           break;
-        case 's':
+        case 'S':
           ledYellow(1);
-          motors.setLeftSpeed(REVERSE_SPEED*-1);
-          motors.setRightSpeed(REVERSE_SPEED*-1);
-          delay(200);
+          motors.setLeftSpeed(speed*-1);
+          motors.setRightSpeed(speed*-1);
+          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+          delay(70);
           break;
-        case 'd':
+        case 'D':
           ledRed(1);
           motors.setRightSpeed(speed);
           motors.setLeftSpeed(speed*-1);
-
+          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+          delay(70);
           break;
-        case 'w':
+        case 'W':
           ledRed(1);
           motors.setLeftSpeed(speed);
           motors.setRightSpeed(speed);
+          printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
+          delay(70);
           break;
         default:
           motors.setLeftSpeed(0);
@@ -689,10 +502,112 @@ void loop()
           ledYellow(0);
           ledRed(0);
       }
-    
     }
+    motors.setLeftSpeed(0);
+    motors.setRightSpeed(0);
+    ledYellow(0);
+    ledRed(0);
+
+  }
+
+  
+  incomingMessage = false;
+
+}
+
+
+
+
+/*
+#include <Wire.h>
+#include <Zumo32U4.h>
+
+
+// Modified a version of reading different incoming information from serial
+// Robin2. (2014, December 1). Serial input basics. Arduino Forum. Retrieved February 26, 2023, from https://forum.arduino.cc/t/serial-input-basics/278284/73 
+const byte numChars = 32;
+char incomingChars[numChars]; // an array to store the received data
+boolean incomingMessage = false;
+char commandType;
+
+void retrieveSerial() {
+    static boolean recvInProgress = false;
+    boolean commandReceived = false;
+
+    static byte ndx = 0;
+    char rc;
+    commandType = ' ';
+
+    while (Serial1.available() > 0 && incomingMessage == false) {
+        rc = Serial1.read();
+
+        if (recvInProgress == true) {
+          // if doesn't = the end  of message incoming ---
+            if (rc != '>') {
+               if(commandReceived){
+                // only add message after : don't include :
+                if(rc != ':' ){
+                  incomingChars[ndx] = rc;
+                  ndx++;
+                  if (ndx >= numChars) {
+                      ndx = numChars - 1;
+                  }
+                }
+              }else if(rc != '<'){
+                  commandType = rc;
+                  commandReceived = true;
+              }
+                
+            }
+            else {
+              
+                incomingChars[ndx] = '\0'; // terminate the string
+                recvInProgress = false;
+                ndx = 0;
+                incomingMessage = true;
+                commandReceived = false;
+                
+            }
+        }
+        
+        else if (rc == '<') {
+            recvInProgress = true;
+        }
+    }
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  Serial1.begin(9600);
+
+  
+}
+
+void loop(){
+  retrieveSerial();
+
+
+  if(incomingMessage){
+    Serial.println("Type: ");
+    Serial.println(commandType);
+    Serial.println(incomingChars);
+    incomingMessage = false;
+    Serial1.println("<recieved>");
+
+  if(commandType == 'h'){
+    Serial1.println("<command h recieved>");
+  }
+
+    if(commandType == 'd'){
+    Serial1.println("<command d recieved>");
+  }
+  }else{
+      Serial1.println("<nothing to report>");
+      
   }
 
 }
 
 
+*/
