@@ -5,8 +5,8 @@
 
 // These might need to be tuned for different motor types.
 uint16_t REVERSE_SPEED   =  50;  // 0 is stopped, 400 is full speed
-uint16_t TURN_SPEED      =  100;
-uint16_t FORWARD_SPEED      =  150;
+uint16_t TURN_SPEED      =  80;
+uint16_t FORWARD_SPEED      =  100;
 uint16_t maneuver_speed = 100;
 uint16_t REVERSE_DURATION =  200;  // ms
 uint16_t TURN_DURATION   = 300; // ms
@@ -22,7 +22,7 @@ void drive(int leftMotor,int rightMotor){
 
 int crash_alert = 0;
 void thresholdCheck(){
- /* lineSensors.read(lineSensorValues);
+ lineSensors.read(lineSensorValues);
   if (lineSensorValues[0] > 960 || lineSensorValues[1] > 900 || lineSensorValues[2] > 900) {
     crash_alert++;
 
@@ -31,13 +31,13 @@ void thresholdCheck(){
     crash_alert = 0;
   }
 
-  if(crash_alert == 3){
+  if(crash_alert == 5){
     
     printConsoleVariable("CRASHED");
     printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
     maneuver_crash = true;
   }
-*/
+
 }
 
 
@@ -170,11 +170,14 @@ void turn(char dir, float angle)
     break;
   case 'R':
     // Turn right 45 degrees using the gyro.
-    int16_t oldCountsRight = encoders.getCountsAndResetRight();
-    printMovementUpdate("s", oldCountsRight,"r", (int)(45 * angle));
+    //int16_t oldCountsRight = encoders.getCountsAndResetRight();
+    //int16_t oldCountsLeft = encoders.getCountsAndResetLeft();
+    //int16_t countsRight = encoders.getCountsRight();
+    //printMovementUpdate("s", countsRight,"r", (int)(45 * angle));
+
     drive(TURN_SPEED , -TURN_SPEED );
     if(motor_on){
-      while((int32_t)turnAngle > -turnAngle45 * angle && !maneuver_crash)
+      while((int32_t)turnAngle > -turnAngle45 * angle )
       {
         thresholdCheck();
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
@@ -185,12 +188,14 @@ void turn(char dir, float angle)
     sensorIndex = 1;
     break;
   case 'L':
-    int16_t oldCountsRightr = encoders.getCountsAndResetRight();
-    printMovementUpdate("s", oldCountsRightr,"r", (int)(45 * angle));
+    //int16_t oldCountsRightr = encoders.getCountsAndResetRight();
+    //int16_t oldCountsLeftr = encoders.getCountsAndResetLeft();
+
+
     // Turn left 45 degrees using the gyro.
     drive(-TURN_SPEED , TURN_SPEED );
     if(motor_on){
-      while((int32_t)turnAngle < turnAngle45 * angle && !maneuver_crash)
+      while((int32_t)turnAngle < turnAngle45 * angle)
       {
         thresholdCheck();
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
@@ -230,7 +235,7 @@ void reverse(float distance){
   //bool errorLeft = encoders.checkErrorLeft();
   bool errorRight = encoders.checkErrorRight();
   int16_t startingCount = countsRight;
-  printConsoleVariable("Reversing");
+  //printConsoleVariable("Reversing");
   if(motor_on){
     while((int32_t)countsRight > (startingCount - cpr) && errorRight!=true  && !maneuver_crash)//&& errorLeft != true
     {
@@ -244,7 +249,7 @@ void reverse(float distance){
     
   }
   drive(0,0);
-  printConsoleVariable("Finished Reversing");
+  //printConsoleVariable("Finished Reversing");
 }
 
 
@@ -259,7 +264,7 @@ void forward(float distance){
   //bool errorLeft = encoders.checkErrorLeft();
   bool errorRight = encoders.checkErrorRight();
   int16_t startingCount = countsRight;
-  printConsoleVariable("Forward:" + startingCount);
+  //printConsoleVariable("Forward:" + startingCount);
   if(motor_on){
     while((int32_t)countsRight < (startingCount + cpr) && errorRight!=true && !maneuver_crash)//&& errorLeft != true 
     {
@@ -273,6 +278,6 @@ void forward(float distance){
     
   }
   drive(0,0);
-  printConsoleVariable("Finished: " + String(countsRight) + " : " + String(cpr * distance));
+  //printConsoleVariable("Finished: " + String(countsRight) + " : " + String(cpr * distance));
 }
 

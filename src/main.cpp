@@ -55,7 +55,7 @@ unsigned int lineSensorValues[NUM_SENSORS];
 
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 100; 
+const unsigned long period = 150; 
 int sensorTurn = 1;
 
 
@@ -296,9 +296,12 @@ void loop()
 
     //printAllSensors(0, 0, 0, 0, lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
 
-    printProximity();
+    //printProximity();
 
-/*
+ printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
+ printProximity();
+ readEncoders(true);
+ /*
     switch(sensorTurn){
       case 1:
         printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);

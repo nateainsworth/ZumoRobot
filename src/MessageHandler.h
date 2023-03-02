@@ -124,8 +124,8 @@ void printProximity()
 
 void printAllSensors(int countsLeft, int countsRight, bool errorLeft, bool errorRight, int line1, int line2, int line3)
 {
-  static char buffer[80];
-  sprintf(buffer, "<A:%d,%d,%d,%d,%d,%d|%d,%d,%d,%d|%d,%d,%d>",
+  static char buffer[100];
+  sprintf(buffer, "<A:%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d>",
     proxSensors.countsLeftWithLeftLeds(),
     proxSensors.countsLeftWithRightLeds(),
     proxSensors.countsFrontWithLeftLeds(),
@@ -134,8 +134,6 @@ void printAllSensors(int countsLeft, int countsRight, bool errorLeft, bool error
     proxSensors.countsRightWithRightLeds(),
     countsLeft,
     countsRight,
-    errorLeft,
-    errorRight,
     line1,
     line2,
     line3
@@ -145,7 +143,7 @@ void printAllSensors(int countsLeft, int countsRight, bool errorLeft, bool error
 }
 
 void printMovementUpdate(String command, int distance,String commandTwo, int distanceTwo){
-  if(importantReceived){
+  //if(importantReceived){
     static char buffer[32]; 
     sprintf(buffer, "<D:%s,%d,%s,%d>",
       command.c_str(),
@@ -158,8 +156,8 @@ void printMovementUpdate(String command, int distance,String commandTwo, int dis
     Serial1.println(buffer);
     Serial.println(buffer);
     
-  }else{
-    Serial1.println(importantMessageBuffer);
+  //}else{
+    /*Serial1.println(importantMessageBuffer);
     while(!importantReceived){
       retrieveSerial();
       if(incomingMessage){
@@ -177,8 +175,8 @@ void printMovementUpdate(String command, int distance,String commandTwo, int dis
           Serial.println('Command' + String(commandType) + ": issue incoming during while loop");
         }
       }
-    }
-  }
+    }*/
+  //}
 }
 
 

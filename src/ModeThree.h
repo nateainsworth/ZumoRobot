@@ -24,6 +24,31 @@ ChangeState(newState){
   ledGreen(0);
 }*/
 
+bool detectedPerson = false;
+
+void proximityPersonCheck(){
+    if(proxSensors.countsFrontWithLeftLeds() >= 4 ){
+      detectedPerson = true;
+    }
+    if(proxSensors.countsFrontWithRightLeds() >= 4 ){
+      
+      detectedPerson = true;
+    }
+
+    if(detectedPerson){
+      printConsoleVariable("Person Detected");
+      while(!maneuver_crash){
+        turn('R', 1.8);
+        forward(1.5);
+      }
+    }
+      /*
+    proxSensors.countsLeftWithRightLeds(),
+    proxSensors.countsFrontWithLeftLeds(),
+    proxSensors.countsFrontWithRightLeds(),
+    proxSensors.countsRightWithLeftLeds(),
+    proxSensors.countsRightWithRightLeds()*/
+}
 
 int lostTrack = 0;
 
@@ -35,7 +60,7 @@ void runModeThree(){
       delay(5000);
 
     }else if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER 
-      while(!maneuver_crash){
+     // while(!maneuver_crash){
         ledGreen(1);
         ledRed(1);
         ledYellow(1);
@@ -45,10 +70,15 @@ void runModeThree(){
         left_track = false;
         crashed = true;
         drive(0, 0);
+        int16_t countsRight = encoders.getCountsAndResetRight();
+        int16_t countLeft = encoders.getCountsAndResetLeft();
+        printMovementUpdate("s", countsRight,"R", (int)(45 * 2));
+        delay(50);
         reverse(0.1);
-        turn('R', 2);
-        break;
-      }
+
+        turn('R', 1.9);
+        //break;
+     // }
     } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT) {// CHECK LEFT
       ledGreen(1);
 
@@ -95,7 +125,7 @@ void runModeThree(){
 
 
     } else {
-        while(!maneuver_crash){
+        //while(!maneuver_crash){
 
           //if(left_track == true){
             // if left wall is lost turn left to try and find it
@@ -105,11 +135,16 @@ void runModeThree(){
             
             printConsoleVariable("End Of Track");
             forward(0.8);
-            turn('L', 2);
+            int16_t countsRight = encoders.getCountsAndResetRight();
+            int16_t countLeft = encoders.getCountsAndResetLeft();
+            printMovementUpdate("s", countsRight,"l", (int)(45 * 2));
+            delay(50);
+            turn('L', 1.9);
             lostTrack = 0;
-            delay(500);
+            delay(100);
             left_track = false;
             forward(0.2);
+            proximityPersonCheck();
           }else{
             if(left_track){
               turn('I', 1);
@@ -127,8 +162,8 @@ void runModeThree(){
 
             }
           }
-          break;
-        }
+          //break;
+        //}
       // Otherwise, go straight.
       //drive(FORWARD_SPEED, FORWARD_SPEED);
       //}
@@ -156,4 +191,3 @@ void updateMaxSliders(){
       Serial.println("Updated left: ");
       Serial.print(QTR_THRESHOLD_LEFT);
 }
-
