@@ -5,14 +5,14 @@
 
 // These might need to be tuned for different motor types.
 uint16_t REVERSE_SPEED   =  50;  // 0 is stopped, 400 is full speed
-uint16_t TURN_SPEED      =  80;
-uint16_t FORWARD_SPEED      =  100;
+uint16_t TURN_SPEED      =  100;
+uint16_t FORWARD_SPEED      =  150;
 uint16_t maneuver_speed = 100;
 uint16_t REVERSE_DURATION =  200;  // ms
 uint16_t TURN_DURATION   = 300; // ms
 
 // Motor speed when turning.  400 is the max speed.
-const uint16_t turnSpeed = 100;
+//const uint16_t TURN_SPEED  = 100;
 
 void drive(int leftMotor,int rightMotor){
   if(motor_on){
@@ -100,7 +100,7 @@ void turn(char dir, float angle)
   {
   case 'B':
     // Turn left 125 degrees using the gyro.
-    drive(-turnSpeed, turnSpeed);
+    drive(-TURN_SPEED , TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle < turnAngle45 * 3)
       {
@@ -114,7 +114,7 @@ void turn(char dir, float angle)
     // Turn left 45 degrees using the gyro.
     //Serial1.println((int32_t)turnAngle);
     //Serial1.println("<E:Turn Left>");
-    drive(-turnSpeed, turnSpeed);
+    drive(-TURN_SPEED , TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle < turnAngle1 * angle)//((int32_t)turnAngle < angle)//
       {
@@ -129,7 +129,7 @@ void turn(char dir, float angle)
   case 'O':
     //Serial1.println("<E:Turn Right>");
 
-    drive(turnSpeed, -turnSpeed);
+    drive(TURN_SPEED , -TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle > -turnAngle1 * angle)
       {
@@ -143,7 +143,7 @@ void turn(char dir, float angle)
     // Turn left 45 degrees using the gyro.
     //Serial1.println((int32_t)turnAngle);
     //Serial1.println("<E:Turn Left>");
-    drive(0, turnSpeed);
+    drive(0, TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle < turnAngle1 * angle)//((int32_t)turnAngle < angle)//
       {
@@ -158,7 +158,7 @@ void turn(char dir, float angle)
   case 'r':
     //Serial1.println("<E:Turn Right>");
 
-    drive(turnSpeed,0);
+    drive(TURN_SPEED ,0);
     if(motor_on){
       while((int32_t)turnAngle > -turnAngle1 * angle)
       {
@@ -170,7 +170,9 @@ void turn(char dir, float angle)
     break;
   case 'R':
     // Turn right 45 degrees using the gyro.
-    drive(turnSpeed, -turnSpeed);
+    int16_t oldCountsRight = encoders.getCountsAndResetRight();
+    printMovementUpdate("s", oldCountsRight,"r", (int)(45 * angle));
+    drive(TURN_SPEED , -TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle > -turnAngle45 * angle && !maneuver_crash)
       {
@@ -179,11 +181,14 @@ void turn(char dir, float angle)
         turnSensorUpdate();
       }
     }
+    
     sensorIndex = 1;
     break;
   case 'L':
-    // Turn right 45 degrees using the gyro.
-    drive(-turnSpeed, turnSpeed);
+    int16_t oldCountsRightr = encoders.getCountsAndResetRight();
+    printMovementUpdate("s", oldCountsRightr,"r", (int)(45 * angle));
+    // Turn left 45 degrees using the gyro.
+    drive(-TURN_SPEED , TURN_SPEED );
     if(motor_on){
       while((int32_t)turnAngle < turnAngle45 * angle && !maneuver_crash)
       {
@@ -215,6 +220,7 @@ void turn(char dir, float angle)
 }
 
 void reverse(float distance){
+
   int cpr = (float)750 * (float)distance;
   drive(-REVERSE_SPEED , -REVERSE_SPEED);
 
@@ -243,9 +249,8 @@ void reverse(float distance){
 
 
 void forward(float distance){
-  int16_t oldCountsRight = encoders.getCountsAndResetRight();
-  int cpr = (float)750 * (float)distance;
 
+  int cpr = (float)750 * (float)distance;
   drive(maneuver_speed , maneuver_speed);
 
   //int16_t countsLeft = encoders.getCountsLeft();

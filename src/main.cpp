@@ -55,7 +55,7 @@ unsigned int lineSensorValues[NUM_SENSORS];
 
 unsigned long startMillis;  //some global variables available anywhere in the program
 unsigned long currentMillis;
-const unsigned long period = 200; 
+const unsigned long period = 100; 
 int sensorTurn = 1;
 
 
@@ -66,6 +66,9 @@ enum Mode{
   ModeThree,
 };
 
+char importantMessageBuffer[32]; 
+bool importantReceived = true;
+int movementCount = 0;
 
 #include "MessageHandler.h"
 #include "Turnsensor.h"
@@ -134,7 +137,7 @@ void readEncoders(bool printReadings){
 
     bool errorLeft = encoders.checkErrorLeft();
     bool errorRight = encoders.checkErrorRight();
-
+/*
     if(errorLeft || errorRight){
       if(errorPrinted == 0){
         if (errorLeft)
@@ -151,11 +154,14 @@ void readEncoders(bool printReadings){
       }else{
         errorPrinted--;
       }
-    }
+    }*/
     if(printReadings){
       printEncoders(countsLeft, countsRight, errorLeft, errorRight);
     }
 }
+
+// todo remove test bool
+bool test = false;
 
 void setup()
 {
@@ -171,10 +177,10 @@ void setup()
   
   lineSensors.initThreeSensors();
 
-  //proxSensors.initThreeSensors();
+  proxSensors.initThreeSensors();
 
-  //uint16_t levels[] = { 4, 15, 32, 55, 85, 120 };
-  //proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
+  uint16_t levels[] = { 4, 15, 32, 55, 85, 95, 120 };
+  proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
 
   //proxSensors.setPeriod(420);
   //proxSensors.setPulseOnTimeUs(421);
@@ -183,8 +189,8 @@ void setup()
   //proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
   
 
-//TODO UNCOMMENT
-  
+//TODO remove test
+  if(!test){
   buttonB.waitForButton();
   turnSensorSetup();
   
@@ -193,10 +199,11 @@ void setup()
   
   buttonB.waitForButton();
   startMillis = millis(); 
+}else{
+  buttonB.waitForButton();
+}
 }
 
-// todo remove test bool
-bool test = false;
 
 void loop()
 {
@@ -252,31 +259,61 @@ void loop()
      updateMaxSliders();
     }
 
+    if(commandType == 'Q'){
+      if((int)incomingMessage == movementCount){
+        importantReceived = true;
+      }else{
+        Serial.println("error with movements");
+      }   
+    }
+    //if movement message was corrupted resend;
+    if(commandType == 'X'){
+      Serial1.println(importantMessageBuffer);
+    }
+
   }
 
   lineSensors.read(lineSensorValues);
-  proxSensors.read();
+  
   
   currentMillis = millis();
+
+  if(currentMillis - startMillis >= 150){
+    proxSensors.read();
+  }
+
+
   if (currentMillis - startMillis >= period)
   {
     startMillis = currentMillis;
+    //printConsoleVariable("sending values");
 
+    //int16_t countsLeft = encoders.getCountsLeft();
+    //int16_t countsRight = encoders.getCountsRight();
+
+    //bool errorLeft = encoders.checkErrorLeft();
+    //bool errorRight = encoders.checkErrorRight();
+
+    //printAllSensors(0, 0, 0, 0, lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
+
+    printProximity();
+
+/*
     switch(sensorTurn){
       case 1:
         printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
+        sensorTurn = 2;
+      break;
+      case 2:
+        printProximity();
         sensorTurn = 3;
       break;
-      /*case 2:
-        //printProximity();
-        sensorTurn = 3;
-      break;*/
       case 3: 
         readEncoders(true);
         sensorTurn = 1;
       break;
       }
-
+*/
   }
 
 
@@ -288,11 +325,11 @@ void loop()
     {
 
 
-      forward(0.8);
+      //forward(0.8);
  
-      buttonB.waitForButton();
-      turn('L', 2);
-      test = false;
+      //buttonB.waitForButton();
+      //turn('L', 2);
+      //test = false;
     }else{
       runModeThree();
     }   

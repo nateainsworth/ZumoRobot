@@ -122,6 +122,64 @@ void printProximity()
   Serial.println(buffer);
 }
 
+void printAllSensors(int countsLeft, int countsRight, bool errorLeft, bool errorRight, int line1, int line2, int line3)
+{
+  static char buffer[80];
+  sprintf(buffer, "<A:%d,%d,%d,%d,%d,%d|%d,%d,%d,%d|%d,%d,%d>",
+    proxSensors.countsLeftWithLeftLeds(),
+    proxSensors.countsLeftWithRightLeds(),
+    proxSensors.countsFrontWithLeftLeds(),
+    proxSensors.countsFrontWithRightLeds(),
+    proxSensors.countsRightWithLeftLeds(),
+    proxSensors.countsRightWithRightLeds(),
+    countsLeft,
+    countsRight,
+    errorLeft,
+    errorRight,
+    line1,
+    line2,
+    line3
+  );
+  Serial1.println(buffer);
+  Serial.println(buffer);
+}
+
+void printMovementUpdate(String command, int distance,String commandTwo, int distanceTwo){
+  if(importantReceived){
+    static char buffer[32]; 
+    sprintf(buffer, "<D:%s,%d,%s,%d>",
+      command.c_str(),
+      distance,
+      commandTwo.c_str(),
+      distanceTwo
+    );
+    importantReceived = false;
+    movementCount = movementCount + 2;
+    Serial1.println(buffer);
+    Serial.println(buffer);
+    
+  }else{
+    Serial1.println(importantMessageBuffer);
+    while(!importantReceived){
+      retrieveSerial();
+      if(incomingMessage){
+        if(commandType == 'Q'){
+          if((int)incomingMessage == movementCount){
+            importantReceived = true;
+          }else{
+            Serial.println("error with movements");
+          }
+          
+        }else if(commandType == 'X'){//if movement message was corrupted resend;
+          //TODO USE VALUE TO CHECK CURRENT MOVEMENT COUNT BEFORE RESENDING TO AVOID DUPLICATES
+          Serial1.println(importantMessageBuffer);
+        }else{
+          Serial.println('Command' + String(commandType) + ": issue incoming during while loop");
+        }
+      }
+    }
+  }
+}
 
 
 
