@@ -21,9 +21,9 @@ void drive(int leftMotor,int rightMotor){
 }
 
 int crash_alert = 0;
-void thresholdCheck(){
+void thresholdCheck(bool ignoreLeft, bool ignoreRight){//bool ignoreLeft, bool ignoreRight
  lineSensors.read(lineSensorValues);
-  if (lineSensorValues[0] > 960 || lineSensorValues[1] > 900 || lineSensorValues[2] > 900) {
+  if ((lineSensorValues[0] > 1700 && !ignoreLeft) || lineSensorValues[1] > 960 || (lineSensorValues[2] > 1700 && ! ignoreRight)) {//lineSensorValues[0] > 960 ||  || lineSensorValues[2] > 900
     crash_alert++;
 
     //drive(0, 0);
@@ -31,11 +31,12 @@ void thresholdCheck(){
     crash_alert = 0;
   }
 
-  if(crash_alert == 5){
-    
+  if(crash_alert == 3){
+    drive(0,0);
     printConsoleVariable("CRASHED");
     printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
     maneuver_crash = true;
+    
   }
 
 }
@@ -89,7 +90,7 @@ void manualMove(char command, bool partAutomated){
 
 
 
-void turn(char dir, float angle)
+void turn(char dir, float angle,bool thresholds)
 {
 
   turnSensorReset();
@@ -179,7 +180,9 @@ void turn(char dir, float angle)
     if(motor_on){
       while((int32_t)turnAngle > -turnAngle45 * angle )
       {
-        thresholdCheck();
+        if( thresholds){
+          thresholdCheck(true, false);
+        }
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
         turnSensorUpdate();
       }
@@ -197,7 +200,9 @@ void turn(char dir, float angle)
     if(motor_on){
       while((int32_t)turnAngle < turnAngle45 * angle)
       {
-        thresholdCheck();
+        if( thresholds){
+          thresholdCheck(true, false);
+        }
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
         turnSensorUpdate();
       }
@@ -268,7 +273,7 @@ void forward(float distance){
   if(motor_on){
     while((int32_t)countsRight < (startingCount + cpr) && errorRight!=true && !maneuver_crash)//&& errorLeft != true 
     {
-      thresholdCheck();
+      thresholdCheck(true,true);
       //countsLeft = encoders.getCountsLeft();
       countsRight = encoders.getCountsRight();
       

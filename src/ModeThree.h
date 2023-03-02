@@ -38,7 +38,8 @@ void proximityPersonCheck(){
     if(detectedPerson){
       printConsoleVariable("Person Detected");
       while(!maneuver_crash){
-        turn('R', 1.8);
+        reverse(0.2);
+        turn('R', 2, true);
         forward(1.5);
       }
     }
@@ -54,12 +55,7 @@ int lostTrack = 0;
 
 void runModeThree(){
 
-    if(maneuver_crash){
-      printConsoleVariable("Crashed During Maneuver");
-
-      delay(5000);
-
-    }else if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER 
+if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER 
      // while(!maneuver_crash){
         ledGreen(1);
         ledRed(1);
@@ -76,7 +72,7 @@ void runModeThree(){
         delay(50);
         reverse(0.1);
 
-        turn('R', 1.9);
+        turn('R', 1.9, true);
         //break;
      // }
     } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT) {// CHECK LEFT
@@ -95,9 +91,9 @@ void runModeThree(){
           printConsoleVariable("Crashed Left");
         }
         crashed = true;
-        turn('O', 1);
+        turn('O', 1, false);
       }else if(lineSensorValues[0] < QTR_BOUND_TRACK_LEFT){
-        turn('l', 1);
+        turn('l', 1,false);
 
 
       }else{
@@ -111,17 +107,13 @@ void runModeThree(){
       
     } else if (lineSensorValues[2] > QTR_THRESHOLD_RIGHT) {// CHECK RIGHT
 
-      
       ledGreen(0);
       ledRed(1);
       ledYellow(0);
+      printConsoleVariable("Crashed Right");
 
-  
-       printConsoleVariable("Crashed Right");
-       
-      
       crashed = true;
-      turn('I', 1);
+      turn('I', 1, false);
 
 
     } else {
@@ -139,22 +131,25 @@ void runModeThree(){
             int16_t countLeft = encoders.getCountsAndResetLeft();
             printMovementUpdate("s", countsRight,"l", (int)(45 * 2));
             delay(50);
-            turn('L', 1.9);
+            turn('L', 1.9,false);
             lostTrack = 0;
             delay(100);
             left_track = false;
             forward(0.2);
             proximityPersonCheck();
+            maneuver_crash = false;
+            crashed = false;
+            delay(2000);
           }else{
             if(left_track){
-              turn('I', 1);
+              turn('I', 1,false);
               crashed = false;
               ledGreen(0);
               ledRed(0);
               ledYellow(0);
               lostTrack++;
             }else{
-              turn('l', 1);
+              turn('l', 1,false);
               crashed = false;
               ledGreen(0);
               ledRed(0);
