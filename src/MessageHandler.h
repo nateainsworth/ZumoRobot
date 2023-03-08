@@ -73,7 +73,7 @@ void printGyro(int angle){
 }
 
 void printConsoleVariable(String variable){
-  static char buffer[80];
+  static char buffer[10];
   sprintf(buffer, "<E:%s>",
     variable.c_str()
   );
@@ -82,7 +82,7 @@ void printConsoleVariable(String variable){
 }
 
 void printLineSensors(int line1, int line2, int line3){
-  static char buffer[80]; 
+  static char buffer[20]; 
   sprintf(buffer, "<L:%d,%d,%d>",
     line1,
     line2,
@@ -95,7 +95,7 @@ void printLineSensors(int line1, int line2, int line3){
 }
 
 void printEncoders(int countsLeft, int countsRight, bool errorLeft, bool errorRight){
-  static char buffer[80]; 
+  static char buffer[50]; 
   sprintf(buffer, "<R:%d,%d,%d,%d>",
     countsLeft,
     countsRight,
@@ -109,7 +109,7 @@ void printEncoders(int countsLeft, int countsRight, bool errorLeft, bool errorRi
 
 void printProximity()
 {
-  static char buffer[80];
+  static char buffer[18];
   sprintf(buffer, "<P:%d,%d,%d,%d,%d,%d>",
     proxSensors.countsLeftWithLeftLeds(),
     proxSensors.countsLeftWithRightLeds(),

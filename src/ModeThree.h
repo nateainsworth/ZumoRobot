@@ -8,11 +8,10 @@
 /*
 enum State
 {
-  StatePausing,
-  StateWaiting,
+  StateFollowingLeft,
   StateScanning,
-  StateDriving,
-  StateBacking,
+  StateNoLine,
+  StateDeadEnd,
 };
 
 ChangeState(newState){
@@ -27,6 +26,7 @@ ChangeState(newState){
 bool detectedPerson = false;
 
 void proximityPersonCheck(){
+  delay(500);
     if(proxSensors.countsFrontWithLeftLeds() >= 4 ){
       detectedPerson = true;
     }
@@ -36,11 +36,13 @@ void proximityPersonCheck(){
     }
 
     if(detectedPerson){
-      printConsoleVariable("Person Detected");
+      printConsoleVariable("PD");
       while(!maneuver_crash){
-        reverse(0.2);
-        turn('R', 2, true);
-        forward(1.5);
+        //reverse(0.2);
+        turn('R', 1, true);
+        forward(1.8);
+        drive(0,0);
+        break;
       }
     }
       /*
@@ -52,27 +54,38 @@ void proximityPersonCheck(){
 }
 
 int lostTrack = 0;
+bool roomOrCorridor = false;
+int startingDistance = 0;
+
+    
 
 void runModeThree(){
+
 
 if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER 
      // while(!maneuver_crash){
         ledGreen(1);
         ledRed(1);
         ledYellow(1);
-
         
-        printConsoleVariable("Crashed Middle");
+        printConsoleVariable("CrM");
         left_track = false;
         crashed = true;
         drive(0, 0);
         int16_t countsRight = encoders.getCountsAndResetRight();
         int16_t countLeft = encoders.getCountsAndResetLeft();
         printMovementUpdate("s", countsRight,"R", (int)(45 * 2));
-        delay(50);
-        reverse(0.1);
+        if( roomOrCorridor == true){
+          printConsoleVariable("corridor");
+          reverse(0.2);
+          // find left line again
 
-        turn('R', 1.9, true);
+        }else{
+          delay(50);
+          reverse(0.1);
+
+          turn('R', 1.9, true);
+        }
         //break;
      // }
     } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT) {// CHECK LEFT
@@ -88,7 +101,7 @@ if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER
         
         
         if(!crashed){
-          printConsoleVariable("Crashed Left");
+          printConsoleVariable("CrL");
         }
         crashed = true;
         turn('O', 1, false);
@@ -110,7 +123,7 @@ if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER
       ledGreen(0);
       ledRed(1);
       ledYellow(0);
-      printConsoleVariable("Crashed Right");
+      printConsoleVariable("CrR");
 
       crashed = true;
       turn('I', 1, false);
@@ -123,25 +136,43 @@ if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER
             // if left wall is lost turn left to try and find it
         
           //}else{
-          if(lostTrack >= 2){
+          if(lostTrack >= 2 || !roomOrCorridor){
             
-            printConsoleVariable("End Of Track");
-            forward(0.8);
+            printConsoleVariable("EOT"); // end of track
+            //forward(0.8);
+            //turn('o', 2,false);
+
             int16_t countsRight = encoders.getCountsAndResetRight();
             int16_t countLeft = encoders.getCountsAndResetLeft();
             printMovementUpdate("s", countsRight,"l", (int)(45 * 2));
             delay(50);
-            turn('L', 1.9,false);
-            lostTrack = 0;
-            delay(100);
             left_track = false;
-            forward(0.2);
+            //lostTrack = 0;
+            roomOrCorridor = true;
+            startingDistance = encoders.getCountsRight();
+            /*
             proximityPersonCheck();
-            maneuver_crash = false;
-            crashed = false;
-            delay(2000);
+            if(!detectedPerson){
+              printConsoleVariable("GO"); //continue
+              turn('L', 1.9,false);
+              lostTrack = 0;
+              delay(300);
+              left_track = false;
+              
+              
+              maneuver_crash = false;
+              crashed = false;
+
+              roomOrCorridor = true;
+              proximityPersonCheck();
+
+              forward(0.2);
+            }*/
+            printConsoleVariable("SK");
           }else{
             if(left_track){
+              // refinding left by slight movement
+              printConsoleVariable("LL"); // look left
               turn('I', 1,false);
               crashed = false;
               ledGreen(0);
@@ -149,13 +180,37 @@ if (lineSensorValues[1] > QTR_THRESHOLD_MIDDLE) {// CHECK CENTER
               ledYellow(0);
               lostTrack++;
             }else{
-              turn('l', 1,false);
-              crashed = false;
-              ledGreen(0);
-              ledRed(0);
-              ledYellow(0);
+              if(roomOrCorridor == true){
+                int cpr = (float)750 * (float) 1;
+                drive(maneuver_speed , maneuver_speed);
+
+                int16_t countsRight = encoders.getCountsRight();
+
+                bool errorRight = encoders.checkErrorRight();
+                int16_t startingCount = countsRight;
+
+                if((int32_t)countsRight < (startingDistance + cpr)){
+                  // middle of room
+                  drive(0,0);
+                  printConsoleVariable("rom");
+                  proximityPersonCheck();
+
+                  //TODO Deal with DETECTION
+
+                }
+              }else{
+                // find left track without right motor to do a larger circle
+                printConsoleVariable("lnr");
+                turn('l', 1,false);
+                crashed = false;
+                ledGreen(0);
+                ledRed(0);
+                ledYellow(0);
+              }
 
             }
+
+           
           }
           //break;
         //}

@@ -76,7 +76,7 @@ int movementCount = 0;
 
 #include "ModeOne.h"
 #include "ModeTwo.h"
-#include "ModeThree.h"
+//#include "ModeThree.h"
 
 
 
@@ -172,7 +172,7 @@ void setup()
   uint16_t batteryLevel = readBatteryMillivolts();
 
   if(!usbPower){
-    printConsoleVariable(("Battery Level " + String(batteryLevel) + "mv"));
+   // printConsoleVariable(("Battery Level " + String(batteryLevel) + "mv"));
   }
   
   lineSensors.initThreeSensors();
@@ -190,7 +190,7 @@ void setup()
   
 
 //TODO remove test
-  if(!test){
+  //if(!test){
   buttonB.waitForButton();
   turnSensorSetup();
   
@@ -199,9 +199,9 @@ void setup()
   
   buttonB.waitForButton();
   startMillis = millis(); 
-}else{
-  buttonB.waitForButton();
-}
+//}else{
+ // buttonB.waitForButton();
+//}
 }
 
 
@@ -326,6 +326,8 @@ void loop()
   if(!manualTakeOver){
     if(test)
     {
+      //buttonB.waitForButton();
+      //proximityPersonCheck();
 
 
       //forward(0.8);
@@ -334,7 +336,8 @@ void loop()
       //turn('L', 2);
       //test = false;
     }else{
-      runModeThree();
+      //runModeThree();
+      runModeTwo();
     }   
 
 

@@ -33,7 +33,7 @@ void thresholdCheck(bool ignoreLeft, bool ignoreRight){//bool ignoreLeft, bool i
 
   if(crash_alert == 3){
     drive(0,0);
-    printConsoleVariable("CRASHED");
+    printConsoleVariable("CRA");
     printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
     maneuver_crash = true;
     
