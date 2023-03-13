@@ -13,7 +13,7 @@ int QTR_BOUND_TRACK_LEFT = 260;
 int QTR_THRESHOLD_TRACK_RIGHT =  300; 
 
 int QTR_THRESHOLD_LEFT   = 550; // was 400
-int QTR_THRESHOLD_MIDDLE = 150; 
+int QTR_THRESHOLD_MIDDLE = 140; 
 int QTR_THRESHOLD_RIGHT  = 400; 
 
 
@@ -36,7 +36,7 @@ int errorPrinted = 0;
 
 char action;
 bool crashed = false;
-int speed = 100;
+int speed = 80;
 bool manualTakeOver = false;
 bool left_track = false;
 bool false_track = false;
@@ -192,13 +192,16 @@ void setup()
 //TODO remove test
   //if(!test){
   buttonB.waitForButton();
+
   turnSensorSetup();
   
-  lineSensorSetup();
+  //lineSensorSetup();
   
   
-  buttonB.waitForButton();
+  //buttonB.waitForButton();
   startMillis = millis(); 
+  lastDetectionMillis  = millis();
+  lastPersonCheckMillis = millis();
 //}else{
  // buttonB.waitForButton();
 //}
@@ -338,6 +341,8 @@ void loop()
     }else{
       //runModeThree();
       runModeTwo();
+
+          
     }   
 
 

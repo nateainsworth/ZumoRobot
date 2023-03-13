@@ -5,8 +5,8 @@
 
 // These might need to be tuned for different motor types.
 uint16_t REVERSE_SPEED   =  50;  // 0 is stopped, 400 is full speed
-uint16_t TURN_SPEED      =  80;
-uint16_t FORWARD_SPEED      =  100;
+uint16_t TURN_SPEED      =  50;
+uint16_t FORWARD_SPEED      =  80;
 uint16_t maneuver_speed = 100;
 uint16_t REVERSE_DURATION =  200;  // ms
 uint16_t TURN_DURATION   = 300; // ms
