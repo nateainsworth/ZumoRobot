@@ -6,6 +6,8 @@
 
 
 void runModeOne(){
-    manualMove(commandType, false);
+    if(incomingMessage){
+        manualMove(commandType, false);
+    }
     
 }

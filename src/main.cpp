@@ -37,7 +37,8 @@ int errorPrinted = 0;
 char action;
 bool crashed = false;
 int speed = 80;
-bool manualTakeOver = false;
+//bool manualTakeOver = false;
+int driveMode = 3;
 bool left_track = false;
 bool false_track = false;
 bool motor_on = true;
@@ -58,14 +59,6 @@ unsigned long currentMillis;
 const unsigned long period = 150; 
 int sensorTurn = 1;
 
-
-
-enum Mode{
-  ModeOne,
-  ModeTwo,
-  ModeThree,
-};
-
 char importantMessageBuffer[32]; 
 bool importantReceived = true;
 int movementCount = 0;
@@ -76,29 +69,14 @@ int movementCount = 0;
 
 #include "ModeOne.h"
 #include "ModeTwo.h"
-//#include "ModeThree.h"
+#include "ModeThree.h"
 
 
-
-// Calibrates the line sensors by turning left and right, then
-// shows a bar graph of calibrated sensor readings on the display.
-// Returns after the user presses A.
+/*
 void lineSensorSetup()
 {
-  //display.clear();
-  //display.print(F("Line cal"));
-
-  // Delay so the robot does not move while the user is still
-  // touching the button.
   delay(1000);
 
-  // We use the gyro to turn so that we don't turn more than
-  // necessary, and so that if there are issues with the gyro
-  // then you will know before actually starting the robot.
-
-  //turnSensorReset();
-  
-  // Turn to the left 90 degrees.
   motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
   while((int32_t)turnAngle < turnAngle45 * 2)
   {
@@ -107,7 +85,6 @@ void lineSensorSetup()
     turnSensorUpdate();
   }
 
-  // Turn to the right 90 degrees.
   motors.setSpeeds(calibrationSpeed, -calibrationSpeed);
   while((int32_t)turnAngle > -turnAngle45 * 2)
   {
@@ -116,7 +93,6 @@ void lineSensorSetup()
     turnSensorUpdate();
   }
 
-  // Turn back to center using the gyro.
   motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
   while((int32_t)turnAngle < 0)
   {
@@ -125,9 +101,8 @@ void lineSensorSetup()
     turnSensorUpdate();
   }
 
-  // Stop the motors.
   motors.setSpeeds(0, 0);
-}
+}*/
 
 
 void readEncoders(bool printReadings){
@@ -137,24 +112,7 @@ void readEncoders(bool printReadings){
 
     bool errorLeft = encoders.checkErrorLeft();
     bool errorRight = encoders.checkErrorRight();
-/*
-    if(errorLeft || errorRight){
-      if(errorPrinted == 0){
-        if (errorLeft)
-        { 
-          errorPrinted = 10;
-          printConsoleVariable("Left Encoder Error");
-        }
 
-        if (errorRight)
-        {
-          errorPrinted = 10;
-          printConsoleVariable("Right Encoder Error");
-        }
-      }else{
-        errorPrinted--;
-      }
-    }*/
     if(printReadings){
       printEncoders(countsLeft, countsRight, errorLeft, errorRight);
     }
@@ -182,29 +140,14 @@ void setup()
   uint16_t levels[] = { 4, 15, 32, 55, 85, 95, 120 };
   proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
 
-  //proxSensors.setPeriod(420);
-  //proxSensors.setPulseOnTimeUs(421);
-  //proxSensors.setPulseOffTimeUs(578);
-  //uint16_t levels[] = { 4, 15, 32, 55, 85, 120 };
-  //proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
-  
-
-//TODO remove test
-  //if(!test){
   buttonB.waitForButton();
-
   turnSensorSetup();
-  
-  //lineSensorSetup();
-  
   
   //buttonB.waitForButton();
   startMillis = millis(); 
   lastDetectionMillis  = millis();
   lastPersonCheckMillis = millis();
-//}else{
- // buttonB.waitForButton();
-//}
+
 }
 
 
@@ -224,19 +167,21 @@ void loop()
 
       switch (incomingChars[0]){
           case '1':
-            manualTakeOver = true;
+            driveMode = 1;
             break;
           case '2':
+            driveMode = 2;
             break;
           case '3':
-            manualTakeOver = false;
+            driveMode = 3;
             break;
           case '4':
             motor_on = !motor_on;
             Serial.print("motor changed");
             break;
           default:
-            manualTakeOver = true;
+            driveMode = 0;
+            break;
       }
     }
 
@@ -277,33 +222,19 @@ void loop()
   }
 
   lineSensors.read(lineSensorValues);
-  
-  
   currentMillis = millis();
 
   if(currentMillis - startMillis >= 150){
     proxSensors.read();
   }
 
-
   if (currentMillis - startMillis >= period)
   {
     startMillis = currentMillis;
-    //printConsoleVariable("sending values");
-
-    //int16_t countsLeft = encoders.getCountsLeft();
-    //int16_t countsRight = encoders.getCountsRight();
-
-    //bool errorLeft = encoders.checkErrorLeft();
-    //bool errorRight = encoders.checkErrorRight();
-
-    //printAllSensors(0, 0, 0, 0, lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
-
-    //printProximity();
-
- printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
- printProximity();
- readEncoders(true);
+    printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
+    printProximity();
+    readEncoders(true);
+  }
  /*
     switch(sensorTurn){
       case 1:
@@ -319,13 +250,29 @@ void loop()
         sensorTurn = 1;
       break;
       }
-*/
+      */
+
+
+  switch(driveMode){
+    case 1:
+     
+      runModeOne();
+      break;
+    case 2:
+      
+      runModeTwo();
+      break;
+    case 3:
+      
+      runModeThree();
+      break;
+    default:
+      delay(1000);
+      break;
+
   }
-
-
-
   //while(noSensors have been detected run mode)
-
+/*
   if(!manualTakeOver){
     if(test)
     {
@@ -348,13 +295,11 @@ void loop()
 
   }else{
 
-    if(incomingMessage){
+  
 
-      manualMove(commandType, false);
-
-  }
+  }*/
 
   incomingMessage = false;
 
-  }
+
 }

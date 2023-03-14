@@ -77,7 +77,7 @@ void updateState(State changeTo){
 }
 
 
-bool moveDetection () {
+bool moveDetectionThree () {
     if(lineSensorValues[1] > QTR_THRESHOLD_MIDDLE){
         ledGreen(1);
         ledRed(1);
@@ -139,8 +139,67 @@ bool moveDetection () {
 int lostLeft = 0;
 
 */
+
+bool moveDetectionThree () {
+    if(lineSensorValues[1] > QTR_THRESHOLD_MIDDLE){
+        ledGreen(1);
+        ledRed(1);
+        ledYellow(1);
+            
+        if(state == FindLeft){
+            // Turn Left
+            reverse(0.2);
+            updateState(RightCornering);
+        }else if(state == FollowingLeft){
+            //Turn Right
+            updateState(RightCornering);
+        }else if(state == ForwardFindLeft){
+            reverse(0.2);
+            updateState(LeftCornering);
+        }else{
+            printConsoleVariable("ERR1");
+            reverse(0.2);
+            updateState(RightCornering);
+            
+        }
+        
+        return true;
+    } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT){
+        ledGreen(0);
+        ledRed(0);
+        ledYellow(1);
+        if(state == CheckForward){
+            drive(0,0);
+            updateState(CorridorReverse);
+            return true;
+        }
+        if (lineSensorValues[0] > QTR_THRESHOLD_LEFT) {
+            /// if over line too far correct path.
+            updateState(CorrectLeft);
+        }else{
+            // not over line too far keep following.
+            updateState(FollowingLeft);
+        }
+        return true;
+
+    } else if (lineSensorValues[2] > QTR_THRESHOLD_RIGHT) {
+        ledGreen(0);
+        ledRed(1);
+        ledYellow(0);
+        updateState(CorrectRight);
+        return true;
+    }else{
+        ledGreen(0);
+        ledRed(0);
+        ledYellow(0);
+        return false;
+    }
+
+}
+
+
 void automation(){
-    bool detected = moveDetection();
+    bool detected = moveDetectionThree();
     if(detected){
         if(state == FollowingLeft){
             drive(FORWARD_SPEED, FORWARD_SPEED);
@@ -171,10 +230,12 @@ void automation(){
 
         }else if(state == LeftCornering){
             turn('L', 1.9, false);
-            // TODO setup new direction to go in
-            if(previous_state){
-                updateState(ForwardFindLeft);
-                startingDistance = encoders.getCountsRight();
+            if(previous_state == CorridorReverse){
+              updateState(FindLeft);
+              startingDistance = encoders.getCountsRight();
+            }else{
+              updateState(ForwardFindLeft);
+              startingDistance = encoders.getCountsRight();
             }
         }else if(state == CorrectLeft){
             turn('O', 1, false);
@@ -201,9 +262,9 @@ void automation(){
            
         }else if(state == Scanning){
             drive(0,0);
-             proximityPersonCheck();
+            proximityPersonCheck();
         }else if(state == FindLeft){
-            
+            printConsoleVariable("Find the left" + lostLeft);
             turn('l', 1,false);
             //Still didn't find left
             if(previous_state == FollowingLeft){
@@ -212,24 +273,27 @@ void automation(){
             if(lostLeft  >= 4 ){
                 turn('O', lostLeft, false);
                 lostLeft = 0;
+                
                 // check forward until distance reached
                 updateState(CheckForward);
                 startingDistance = encoders.getCountsRight();
             }//else leave to find left
             
         }else if(state == RightCornering){
-        
+          printConsoleVariable("ERR4");
         }else if(state == LeftCornering){
             turn('L', 1.9, false);
-            //if(previous_state){
-                updateState(ForwardFindLeft);
-                startingDistance = encoders.getCountsRight();
-            //}
+             if(previous_state == CorridorReverse){
+                updateState(FindLeft);
+            }else{
+              updateState(ForwardFindLeft);
+              startingDistance = encoders.getCountsRight();
+            }
         
         }else if(state == LosingLeftLine){
             turn('I', 1,false);
         }else if(state == CorrectLeft){
-            
+            printConsoleVariable("ERR5");
         }else if(state == CorrectRight){
             turn('I', 1, false);
             updateState(FindLeft);
@@ -251,7 +315,6 @@ void automation(){
                 startingDistance = encoders.getCountsRight();
             }
         }else if(state == ForwardFindLeft){
-            printConsoleVariable("FFactive");
 
             int cpr = (float)750 * (float) 1.5;
             drive(maneuver_speed , maneuver_speed);

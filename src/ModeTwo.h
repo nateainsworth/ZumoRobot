@@ -14,8 +14,10 @@ unsigned long rightDetectMillis;
 
 int proximityPeriod = 300;
 
+bool modeTwoTakeOver = false;
+
 void proximityPersonCheck(){
-    delay(500);
+    //delay(500);
     if(proxSensors.countsFrontWithLeftLeds() >= 4 ){
         leftDetectMillis = millis();
         if(leftDetectMillis - lastDetectionMillis >= 150){
@@ -54,13 +56,16 @@ enum State
   ForwardToFind,
   ForwardFindLeft,
   CorridorReverse,
+  ModeTwoWait,
 };
 
 State state = FindLeft;
 State previous_state = Starting;
 
 void updateState(State changeTo){
-    previous_state = state;
+    if(state != ModeTwoWait){
+        previous_state = state;
+    }
     state = changeTo;
     //printConsoleVariable("New State");
 
@@ -88,21 +93,29 @@ bool moveDetection () {
         ledGreen(1);
         ledRed(1);
         ledYellow(1);
-        if(state == FindLeft){
-            // Turn Left
-            reverse(0.2);
-            updateState(RightCornering);
-        }else if(state == FollowingLeft){
-            //Turn Right
-            updateState(RightCornering);
-        }else if(state == ForwardFindLeft){
-            reverse(0.2);
-            updateState(LeftCornering);
-        }else{
-            printConsoleVariable("ERR1");
-            reverse(0.2);
-            updateState(RightCornering);
+
+        if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
             
+            if(state == FindLeft){
+                // Turn Left
+                reverse(0.2);
+                updateState(RightCornering);
+            }else if(state == FollowingLeft){
+                //Turn Right
+                updateState(RightCornering);
+            }else if(state == ForwardFindLeft){
+                reverse(0.2);
+                updateState(LeftCornering);
+            }else{
+                printConsoleVariable("ERR1");
+                reverse(0.2);
+                updateState(RightCornering);
+                
+            }
+        }else{
+            reverse(0.2);
+            drive(0,0);
+            updateState(ModeTwoWait);
         }
         return true;
     } else if (lineSensorValues[0] > QTR_THRESHOLD_TRACK_LEFT){
@@ -110,13 +123,9 @@ bool moveDetection () {
         ledRed(0);
         ledYellow(1);
         if(state == CheckForward){
-            buzzer.playNote(A5,10,5);
-            
             drive(0,0);
-            delay(5000);
             updateState(CorridorReverse);
             return true;
-            
         }
         if (lineSensorValues[0] > QTR_THRESHOLD_LEFT) {
             /// if over line too far correct path.
@@ -146,138 +155,202 @@ int lostLeft = 0;
 
 
 void control(){
-    bool detected = moveDetection();
-    if(detected){
-        if(state == FollowingLeft){
-            drive(FORWARD_SPEED, FORWARD_SPEED);
-            lostLeft = 0;
-            currentTime = millis();
-
-            if(currentTime - lastPersonCheckMillis >= proximityPeriod)
-            {
-                lastPersonCheckMillis = currentTime;
-            }
-        }else if(state == Scanning){
-            drive(0,0);
-            proximityPersonCheck();
-        }else if(state == RightCornering){
-            turn('R', 2, false);
-            // TODO setup new direction to go in
-            if(previous_state == FollowingLeft){
+    if(state != ModeTwoWait){
+        bool detected = moveDetection();
+        if(detected){
+            if(state == FollowingLeft){
+                drive(FORWARD_SPEED, FORWARD_SPEED);
                 lostLeft = 0;
-                updateState(FindLeft);
+                currentTime = millis();
+
+                if(currentTime - lastPersonCheckMillis >= proximityPeriod)
+                {
+                    lastPersonCheckMillis = currentTime;
+                }
+            }else if(state == Scanning){
+                drive(0,0);
+                proximityPersonCheck();
+            }else if(state == RightCornering){
+                if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                    turn('R', 2, false);
+                    
+                    // TODO setup new direction to go in
+                    if(previous_state == FollowingLeft){
+                        lostLeft = 0;
+                        updateState(FindLeft);
+                    }else if(state == CheckForward){
+                        turn('I', 1, false);
+                    }else if(state == ForwardFindLeft){
+                        turn('I', 1, false);
+                    }else{
+                        printConsoleVariable("ERR2");
+                        updateState(FindLeft);
+                    }
+                }else{
+                    drive(0,0);
+                    updateState(ModeTwoWait);
+                }
+
+            }else if(state == LeftCornering){
+                if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                    turn('L', 1.9, false);
+                    // TODO setup new direction to go in
+                    if(previous_state == CorridorReverse){
+                        updateState(FindLeft);
+                    }else{
+                        updateState(ForwardFindLeft);
+                        startingDistance = encoders.getCountsRight();
+                    }
+                }else{
+                    drive(0,0);
+                    updateState(ModeTwoWait);
+                }
+            }else if(state == CorrectLeft){
+                turn('O', 1, false);
+            }else if(state == CorrectRight){
+                turn('I', 1, false);
             }else if(state == CheckForward){
+                // hit middle wall should have already turned
+                printConsoleVariable("ERR3");
+            }else if(state == CorridorReverse){
+                reverse(0.2);
+                if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                    updateState(LeftCornering);
+                }else{
+                    drive(0,0);
+                    updateState(ModeTwoWait);
+                }
+            }
+        //No detection of a line 
+        }else{
+            if(state == FollowingLeft){
+                // refind left
+                updateState(FindLeft);
+                currentTime = millis();
+
+                if(currentTime - lastPersonCheckMillis >= proximityPeriod)
+                {
+                    lastPersonCheckMillis = currentTime;
+                    proximityPersonCheck();
+                }
+            //TODO consider removing scanning
+            }else if(state == Scanning){
+                drive(0,0);
+                proximityPersonCheck();
+            }else if(state == FindLeft){
+                
+                turn('l', 1,false);
+                //Still didn't find left
+                if(previous_state == FollowingLeft){
+                lostLeft++;
+                }
+                if(lostLeft  >= 4 ){
+                    turn('O', lostLeft, false);
+                    lostLeft = 0;
+                    // check forward until distance reached
+                    //if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                        updateState(CheckForward);
+                        startingDistance = encoders.getCountsRight();
+                    //}else{
+                    //    drive(0,0);
+                    //    updateState(ModeTwoWait);
+                    //}
+                }//else leave to find left
+                
+            }else if(state == RightCornering){
+                printConsoleVariable("ERR4");
+            }else if(state == LeftCornering){
+                turn('L', 1.9, false);
+                if(previous_state == CorridorReverse){
+                    updateState(FindLeft);
+                    startingDistance = encoders.getCountsRight();
+                }else{
+                    //if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                        updateState(ForwardFindLeft);
+                        startingDistance = encoders.getCountsRight();
+                    //}else{
+                    //    drive(0,0);
+                    //    updateState(ModeTwoWait);
+                    //}
+                }
+            
+            }else if(state == LosingLeftLine){
+                turn('I', 1,false);
+            }else if(state == CorrectLeft){
+                printConsoleVariable("ERR5");
+            }else if(state == CorrectRight){
                 turn('I', 1, false);
+                updateState(FindLeft);
+                // refind left or continue dependant on previous states
+            }else if(state == CheckForward){
+                int cpr = (float)750 * (float) 1.5;
+                drive(maneuver_speed , maneuver_speed);
+
+                int16_t countsRight = encoders.getCountsRight();
+
+                bool errorRight = encoders.checkErrorRight();
+                int16_t startingCount = countsRight;
+
+                if((int32_t)countsRight > (startingDistance + cpr)){
+                    // did distance without hitting wall
+                    drive(0,0);
+                    proximityPersonCheck();
+                    updateState(ForwardFindLeft);
+                    startingDistance = encoders.getCountsRight();
+                }
             }else if(state == ForwardFindLeft){
-                turn('I', 1, false);
-            }else{
-                printConsoleVariable("ERR2");
-                updateState(FindLeft);
-            }
 
-        }else if(state == LeftCornering){
-            turn('L', 1.9, false);
-            // TODO setup new direction to go in
-            if(previous_state){
-                updateState(ForwardFindLeft);
-                startingDistance = encoders.getCountsRight();
-            }
-        }else if(state == CorrectLeft){
-            turn('O', 1, false);
-        }else if(state == CorrectRight){
-            turn('I', 1, false);
-        }else if(state == CheckForward){
-            // hit middle wall should have already turned
-        }else if(state == CorridorReverse){
-            reverse(0.2);
-            updateState(LeftCornering);
-        }
-    //No detection of a line 
-    }else{
-        if(state == FollowingLeft){
-            // refind left
-            updateState(FindLeft);
-            currentTime = millis();
+                int cpr = (float)750 * (float) 1.5;
+                drive(maneuver_speed , maneuver_speed);
 
-            if(currentTime - lastPersonCheckMillis >= proximityPeriod)
-            {
-                lastPersonCheckMillis = currentTime;
-                proximityPersonCheck();
-            }
-           //TODO consider removing scanning
-        }else if(state == Scanning){
-            drive(0,0);
-            proximityPersonCheck();
-        }else if(state == FindLeft){
-            
-            turn('l', 1,false);
-            //Still didn't find left
-            if(previous_state == FollowingLeft){
-            lostLeft++;
-            }
-            if(lostLeft  >= 4 ){
-                turn('O', lostLeft, false);
-                lostLeft = 0;
-                // check forward until distance reached
-                updateState(CheckForward);
-                startingDistance = encoders.getCountsRight();
-            }//else leave to find left
-            
-        }else if(state == RightCornering){
-        
-        }else if(state == LeftCornering){
-            turn('L', 1.9, false);
-            //if(previous_state){
-                updateState(ForwardFindLeft);
-                startingDistance = encoders.getCountsRight();
-            //}
-        
-        }else if(state == LosingLeftLine){
-            turn('I', 1,false);
-        }else if(state == CorrectLeft){
-            
-        }else if(state == CorrectRight){
-            turn('I', 1, false);
-            updateState(FindLeft);
-            // refind left or continue dependant on previous states
-        }else if(state == CheckForward){
-            int cpr = (float)750 * (float) 1.5;
-            drive(maneuver_speed , maneuver_speed);
+                int16_t countsRight = encoders.getCountsRight();
 
-            int16_t countsRight = encoders.getCountsRight();
+                bool errorRight = encoders.checkErrorRight();
+                int16_t startingCount = countsRight;
 
-            bool errorRight = encoders.checkErrorRight();
-            int16_t startingCount = countsRight;
-
-            if((int32_t)countsRight > (startingDistance + cpr)){
-                // did distance without hitting wall
-                drive(0,0);
-                proximityPersonCheck();
-                updateState(ForwardFindLeft);
-                startingDistance = encoders.getCountsRight();
-            }
-        }else if(state == ForwardFindLeft){
-
-            int cpr = (float)750 * (float) 1.5;
-            drive(maneuver_speed , maneuver_speed);
-
-            int16_t countsRight = encoders.getCountsRight();
-
-            bool errorRight = encoders.checkErrorRight();
-            int16_t startingCount = countsRight;
-
-            if((int32_t)countsRight > (startingDistance + cpr)){
-                // did distance still no hit
-                updateState(FindLeft);
-                drive(0,0);
+                if((int32_t)countsRight > (startingDistance + cpr)){
+                    // did distance still no hit
+                    updateState(FindLeft);
+                    drive(0,0);
+                }
             }
         }
     }
 }
 
 void runModeTwo(){
+    modeTwoTakeOver = true;
+
     //manualMove(commandType, true);
-    control();
+    if(state == ModeTwoWait){
+     if(incomingMessage){
+      
+      switch(commandType){
+        case 'L':
+            turn('L', 2, false);
+            
+            previous_state = LeftCornering;
+            updateState(FindLeft);
+            
+            //modeTwoTakeOver = false;
+        break;
+        case 'R':
+            turn('R', 2, false);
+            previous_state = RightCornering;
+            updateState(FindLeft);
+            //modeTwoTakeOver = false;
+        break;
+        case 'F':
+            updateState(CheckForward);
+            //modeTwoTakeOver = false;
+        break;
+      }
+
+     }
+    }else{
+
+        control();
+    }
 }
 
 
