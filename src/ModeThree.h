@@ -20,7 +20,7 @@ void automation(){
             proximityPersonCheck(false);
         }else if(state == RightCornering){
             turn('R', 2, false);
-            // TODO setup new direction to go in
+
             if(previous_state == FollowingLeft){
                 lostLeft = 0;
                 updateState(FindLeft);
@@ -29,7 +29,6 @@ void automation(){
             }else if(state == ForwardFindLeft){
                 turn('I', 1, false);
             }else{
-                printConsoleVariable("ERR2");
                 updateState(FindLeft);
             }
 
@@ -51,8 +50,6 @@ void automation(){
           }else if(state == CheckForward){
             updateState(previous_state);
           }
-        }else if(state == CheckForward){
-            // hit middle wall should have already turned
         }else if(state == CorridorReverse){
             reverse(0.2);
             updateState(LeftCornering);
@@ -78,8 +75,9 @@ void automation(){
             turn('l', 1,false);
             //Still didn't find left
             if(previous_state == FollowingLeft){
-            lostLeft++;
+              lostLeft++;
             }
+            // couldn't find left more than 4 times must be corner
             if(lostLeft  >= 4 ){
                 turn('O', lostLeft, false);
                 lostLeft = 0;
@@ -89,8 +87,6 @@ void automation(){
                 startingDistance = encoders.getCountsRight();
             }//else leave to find left
             
-        }else if(state == RightCornering){
-          printConsoleVariable("ERR4");
         }else if(state == LeftCornering){
             turn('L', 1.9, false);
              if(previous_state == CorridorReverse){
@@ -103,7 +99,7 @@ void automation(){
         }else if(state == LosingLeftLine){
             turn('I', 1,false);
         }else if(state == CorrectLeft){
-            printConsoleVariable("ERR5");
+            updateState(FindLeft);
         }else if(state == CorrectRight){
           turn('I', 1, false);
           if(state == ForwardFindLeft){

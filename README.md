@@ -92,6 +92,8 @@ Pololu. (2021, November 16). Zumo-32U4-Arduino-library examples mazesolver . Git
 
 Pololu. (2022, September 7). Zumo-32U4-Arduino-Library examples encoders. GitHub. Retrieved March 13, 2023, from https://github.com/pololu/zumo-32u4-arduino-library/tree/f4dfe054e23176ba445748b4b91f463701e7eb76/examples/Encoders 
 
+Pololu. (2021, November 16). Zumo-32u4-arduino-library/turnsensor.h. GitHub. Retrieved March 14, 2023, from https://github.com/pololu/zumo-32u4-arduino-library/blob/a5945ce13496f92f9311d4622e43ff08d42cf57c/examples/MazeSolver/TurnSensor.h 
+
 Robin2 . (2014, December). Serial input basics. Arduino Forum. Retrieved March 13, 2023, from https://forum.arduino.cc/t/serial-input-basics/278284/40 
 
 UKHeliBob. (2017, October 2). Using millis() for timing. A beginners guide. Arduino Forum. Retrieved March 13, 2023, from https://forum.arduino.cc/t/using-millis-for-timing-a-beginners-guide/483573 

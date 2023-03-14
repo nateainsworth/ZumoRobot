@@ -16,12 +16,11 @@ bool proxLeftActive;
 bool proxFrontActive;
 bool proxRightActive;
 
-
 //setup Thresholds
 int QTR_THRESHOLD_TRACK_LEFT  =  210; 
 int QTR_THRESHOLD_TRACK_RIGHT =  300; 
 
-int QTR_THRESHOLD_LEFT   = 550;
+int QTR_THRESHOLD_LEFT   = 580;// was 550
 int QTR_THRESHOLD_MIDDLE = 140; 
 int QTR_THRESHOLD_RIGHT  = 400; 
 
@@ -32,12 +31,10 @@ int driveMode = 1;
 bool left_track = false;
 bool motor_on = true;
 
-
 // sensor count downs
 unsigned long startMillis;
 unsigned long currentMillis;
 const unsigned long period = 150; 
-
 
 // Message system for checking messages on movement have been recorded
 char importantMessageBuffer[32]; 
@@ -152,13 +149,10 @@ void setup()
 
   uint16_t levels[] = { 4, 15, 32, 55, 85, 95, 120 };
   proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
-
-
   buttonB.waitForButton();
   turnSensorSetup();
   
   startMillis = millis(); 
-  //lastDetectionMillis  = millis();
   lastPersonCheckMillis = millis();
 
 }

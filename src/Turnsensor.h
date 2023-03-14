@@ -1,3 +1,9 @@
+/*
+Gyro Library code reference from:
+Pololu. (2021, November 16). Zumo-32u4-arduino-library/turnsensor.h. GitHub. Retrieved March 14, 2023, 
+from https://github.com/pololu/zumo-32u4-arduino-library/blob/a5945ce13496f92f9311d4622e43ff08d42cf57c/examples/MazeSolver/TurnSensor.h 
+*/
+
 // Turnsensor.h provides functions for configuring the
 // Zumo 32U4's gyro, calibrating it, and using it to
 // measure how much the robot has turned about its Z axis.
