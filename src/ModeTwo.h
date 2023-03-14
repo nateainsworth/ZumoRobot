@@ -8,35 +8,39 @@ int startingDistance = 0;
 unsigned long lastPersonCheckMillis;
 unsigned long currentTime;
 
-unsigned long lastDetectionMillis;
-unsigned long leftDetectMillis;
-unsigned long rightDetectMillis;
+//unsigned long lastDetectionMillis;
+//unsigned long leftDetectMillis;
+//unsigned long rightDetectMillis;
 
 int proximityPeriod = 300;
 
 bool modeTwoTakeOver = false;
 
-void proximityPersonCheck(){
-    //delay(500);
-    if(proxSensors.countsFrontWithLeftLeds() >= 4 ){
-        leftDetectMillis = millis();
-        if(leftDetectMillis - lastDetectionMillis >= 150){
+void proximityPersonCheck(bool leftSide){
+    printConsoleVariable("checking for person");
+
+
+    if(proxSensors.countsLeftWithLeftLeds() >= 4 ){
+       // leftDetectMillis = millis();
+        //if(leftDetectMillis - lastDetectionMillis >= 150){
             buzzer.playFromProgramSpace(PSTR("!<g4"));
-            lastDetectionMillis = leftDetectMillis;
-            printConsoleVariable("PD");
-        }
+        //    lastDetectionMillis = leftDetectMillis;
+           printConsoleVariable("PD");
+        //}
 
     }
-    if(proxSensors.countsFrontWithRightLeds() >= 4 ){
-        rightDetectMillis = millis();
-        // save previous detection 
-        if(rightDetectMillis - lastDetectionMillis >= 150){
-            buzzer.playFromProgramSpace(PSTR("!<a4"));
-            lastDetectionMillis = rightDetectMillis;
+    if(!leftSide){
+        if(proxSensors.countsRightWithRightLeds() >= 4 ){
+        //  rightDetectMillis = millis();
+            // save previous detection 
+            //if(rightDetectMillis - lastDetectionMillis >= 150){
+                buzzer.playFromProgramSpace(PSTR("!<a4"));
+            //   lastDetectionMillis = rightDetectMillis;
             printConsoleVariable("PD");
-        }
+        // }
+            
         
-      
+        }
     }
 
 }
@@ -83,6 +87,7 @@ void updateState(State changeTo){
         case 10: printConsoleVariable("ForwardToFind"); break;
         case 11: printConsoleVariable("ForwardFindLeft"); break;
         case 12: printConsoleVariable("CorridorReverse"); break;
+        case 13: printConsoleVariable("Waiting for console"); break;
         default: printConsoleVariable("Error State");
     }
 }
@@ -103,7 +108,7 @@ bool moveDetection () {
             }else if(state == FollowingLeft){
                 //Turn Right
                 updateState(RightCornering);
-            }else if(state == ForwardFindLeft){
+            }else if(state == ForwardFindLeft || state == CheckForward){
                 reverse(0.2);
                 updateState(LeftCornering);
             }else{
@@ -169,7 +174,7 @@ void control(){
                 }
             }else if(state == Scanning){
                 drive(0,0);
-                proximityPersonCheck();
+                proximityPersonCheck(false);
             }else if(state == RightCornering){
                 if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
                     turn('R', 2, false);
@@ -231,12 +236,12 @@ void control(){
                 if(currentTime - lastPersonCheckMillis >= proximityPeriod)
                 {
                     lastPersonCheckMillis = currentTime;
-                    proximityPersonCheck();
+                    proximityPersonCheck(false);
                 }
             //TODO consider removing scanning
             }else if(state == Scanning){
                 drive(0,0);
-                proximityPersonCheck();
+                proximityPersonCheck(false);
             }else if(state == FindLeft){
                 
                 turn('l', 1,false);
@@ -248,13 +253,13 @@ void control(){
                     turn('O', lostLeft, false);
                     lostLeft = 0;
                     // check forward until distance reached
-                    //if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
+                    if(!modeTwoTakeOver){ //TODO ModeTwo Manual takeover
                         updateState(CheckForward);
                         startingDistance = encoders.getCountsRight();
-                    //}else{
-                    //    drive(0,0);
-                    //    updateState(ModeTwoWait);
-                    //}
+                    }else{
+                        drive(0,0);
+                        updateState(ModeTwoWait);
+                    }
                 }//else leave to find left
                 
             }else if(state == RightCornering){
@@ -283,8 +288,9 @@ void control(){
                 updateState(FindLeft);
                 // refind left or continue dependant on previous states
             }else if(state == CheckForward){
+                
                 int cpr = (float)750 * (float) 1.5;
-                drive(maneuver_speed , maneuver_speed);
+                drive(FORWARD_SPEED , FORWARD_SPEED);
 
                 int16_t countsRight = encoders.getCountsRight();
 
@@ -294,14 +300,15 @@ void control(){
                 if((int32_t)countsRight > (startingDistance + cpr)){
                     // did distance without hitting wall
                     drive(0,0);
-                    proximityPersonCheck();
+                    proximityPersonCheck(true);
                     updateState(ForwardFindLeft);
                     startingDistance = encoders.getCountsRight();
                 }
+                
             }else if(state == ForwardFindLeft){
 
                 int cpr = (float)750 * (float) 1.5;
-                drive(maneuver_speed , maneuver_speed);
+                drive(FORWARD_SPEED , FORWARD_SPEED);
 
                 int16_t countsRight = encoders.getCountsRight();
 
@@ -341,6 +348,7 @@ void runModeTwo(){
             //modeTwoTakeOver = false;
         break;
         case 'F':
+            startingDistance = encoders.getCountsRight();
             updateState(CheckForward);
             //modeTwoTakeOver = false;
         break;
@@ -353,7 +361,7 @@ void runModeTwo(){
     }
 }
 
-
+/*
 void updateLowSliders(){
       int sliders [2];
       parseSliders(sliders, 2);
@@ -370,3 +378,4 @@ void updateMaxSliders(){
       Serial.println("Updated left: ");
       Serial.print(QTR_THRESHOLD_LEFT);
 }
+*/

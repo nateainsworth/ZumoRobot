@@ -1,25 +1,5 @@
-/** This example uses the Zumo's line sensors to detect the white
-border around a sumo ring.  When the border is detected, it
-backs up and turns. */
-
-
 #include <Wire.h>
 #include <Zumo32U4.h>
-
-// This might need to be tuned for different lighting conditions,
-// surfaces, etc.
-int QTR_THRESHOLD_TRACK_LEFT  =  210; 
-int QTR_BOUND_TRACK_LEFT = 260;
-int QTR_THRESHOLD_TRACK_RIGHT =  300; 
-
-int QTR_THRESHOLD_LEFT   = 550; // was 400
-int QTR_THRESHOLD_MIDDLE = 140; 
-int QTR_THRESHOLD_RIGHT  = 400; 
-
-
-// Motor speed when turning during line sensor calibration.
-const uint16_t calibrationSpeed = 200;
-
 
 Zumo32U4ButtonB buttonB;
 Zumo32U4Buzzer buzzer;
@@ -29,36 +9,37 @@ Zumo32U4ProximitySensors proxSensors;
 Zumo32U4Encoders encoders;
 Zumo32U4IMU imu;
 
-const char encoderErrorLeft[] PROGMEM = "!<c2";
-const char encoderErrorRight[] PROGMEM = "!<e2";
-int errorPrinted = 0;
-
-
-char action;
-bool crashed = false;
-int speed = 80;
-//bool manualTakeOver = false;
-int driveMode = 3;
-bool left_track = false;
-bool false_track = false;
-bool motor_on = true;
-
+//setup sensors
+#define NUM_SENSORS 3
+unsigned int lineSensorValues[NUM_SENSORS];
 bool proxLeftActive;
 bool proxFrontActive;
 bool proxRightActive;
 
-bool maneuver_crash = false;
+
+//setup Thresholds
+int QTR_THRESHOLD_TRACK_LEFT  =  210; 
+int QTR_THRESHOLD_TRACK_RIGHT =  300; 
+
+int QTR_THRESHOLD_LEFT   = 550;
+int QTR_THRESHOLD_MIDDLE = 140; 
+int QTR_THRESHOLD_RIGHT  = 400; 
+
+//TODO SET TO 0 
+int driveMode = 1;
+
+// Drive variables
+bool left_track = false;
+bool motor_on = true;
 
 
-#define NUM_SENSORS 3
-unsigned int lineSensorValues[NUM_SENSORS];
-
-
-unsigned long startMillis;  //some global variables available anywhere in the program
+// sensor count downs
+unsigned long startMillis;
 unsigned long currentMillis;
 const unsigned long period = 150; 
-int sensorTurn = 1;
 
+
+// Message system for checking messages on movement have been recorded
 char importantMessageBuffer[32]; 
 bool importantReceived = true;
 int movementCount = 0;
@@ -66,43 +47,11 @@ int movementCount = 0;
 #include "MessageHandler.h"
 #include "Turnsensor.h"
 #include "Travel.h"
-
-#include "ModeOne.h"
 #include "ModeTwo.h"
 #include "ModeThree.h"
+#include "ModeOne.h"
 
 
-/*
-void lineSensorSetup()
-{
-  delay(1000);
-
-  motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
-  while((int32_t)turnAngle < turnAngle45 * 2)
-  {
-    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
-    lineSensors.calibrate();
-    turnSensorUpdate();
-  }
-
-  motors.setSpeeds(calibrationSpeed, -calibrationSpeed);
-  while((int32_t)turnAngle > -turnAngle45 * 2)
-  {
-    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
-    lineSensors.calibrate();
-    turnSensorUpdate();
-  }
-
-  motors.setSpeeds(-calibrationSpeed, calibrationSpeed);
-  while((int32_t)turnAngle < 0)
-  {
-    printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
-    lineSensors.calibrate();
-    turnSensorUpdate();
-  }
-
-  motors.setSpeeds(0, 0);
-}*/
 
 
 void readEncoders(bool printReadings){
@@ -118,46 +67,7 @@ void readEncoders(bool printReadings){
     }
 }
 
-// todo remove test bool
-bool test = false;
-
-void setup()
-{
-  Serial.begin(9600);
-  Serial1.begin(9600);
-
-  bool usbPower = usbPowerPresent();
-  uint16_t batteryLevel = readBatteryMillivolts();
-
-  if(!usbPower){
-   // printConsoleVariable(("Battery Level " + String(batteryLevel) + "mv"));
-  }
-  
-  lineSensors.initThreeSensors();
-
-  proxSensors.initThreeSensors();
-
-  uint16_t levels[] = { 4, 15, 32, 55, 85, 95, 120 };
-  proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
-
-  buttonB.waitForButton();
-  turnSensorSetup();
-  
-  //buttonB.waitForButton();
-  startMillis = millis(); 
-  lastDetectionMillis  = millis();
-  lastPersonCheckMillis = millis();
-
-}
-
-
-void loop()
-{
-
-
-  retrieveSerial();
-
-  if(incomingMessage){
+void handleIncomingMessage(){
     Serial.println("type: ");
     Serial.println(commandType);
     Serial.println("Incoming: ");
@@ -168,11 +78,17 @@ void loop()
       switch (incomingChars[0]){
           case '1':
             driveMode = 1;
+            modeTwoTakeOver = false;
             break;
           case '2':
+            state = FindLeft;
+            previous_state = Starting;
             driveMode = 2;
             break;
           case '3':
+            state = FindLeft;
+            previous_state = Starting;
+            modeTwoTakeOver = false;
             driveMode = 3;
             break;
           case '4':
@@ -186,25 +102,22 @@ void loop()
     }
 
     if(commandType == 'U'){
-       FORWARD_SPEED = (int)incomingChars;
+      FORWARD_SPEED = (int)incomingChars;
     }
     
     if(commandType == 'I'){
-     /*int sliders [2];
+     int sliders [2];
       parseSliders(sliders, 2);
       QTR_THRESHOLD_TRACK_LEFT = sliders[0];
-      QTR_THRESHOLD_TRACK_RIGHT = sliders[1];*/
-      updateLowSliders();
+      QTR_THRESHOLD_TRACK_RIGHT = sliders[1];
     }
 
     if(commandType == 'O'){
-      /*int sliders [3];
+      int sliders [3];
       parseSliders(sliders, 3);
       QTR_THRESHOLD_LEFT  = sliders[0];
       QTR_THRESHOLD_MIDDLE = sliders[1];
       QTR_THRESHOLD_RIGHT = sliders[2];
-      */
-     updateMaxSliders();
     }
 
     if(commandType == 'Q'){
@@ -216,9 +129,47 @@ void loop()
     }
     //if movement message was corrupted resend;
     if(commandType == 'X'){
-      Serial1.println(importantMessageBuffer);
+      //Serial1.println(importantMessageBuffer);
     }
 
+}
+
+void setup()
+{
+  Serial.begin(9600);
+  Serial1.begin(9600);
+
+  bool usbPower = usbPowerPresent();
+  uint16_t batteryLevel = readBatteryMillivolts();
+
+  if(!usbPower){
+    printConsoleVariable(("Battery Level " + String(batteryLevel) + "mv"));
+  }
+  
+  lineSensors.initThreeSensors();
+
+  proxSensors.initThreeSensors();
+
+  uint16_t levels[] = { 4, 15, 32, 55, 85, 95, 120 };
+  proxSensors.setBrightnessLevels(levels, sizeof(levels)/2);
+
+
+  buttonB.waitForButton();
+  turnSensorSetup();
+  
+  startMillis = millis(); 
+  //lastDetectionMillis  = millis();
+  lastPersonCheckMillis = millis();
+
+}
+
+
+void loop()
+{
+  retrieveSerial();
+
+  if(incomingMessage){
+    handleIncomingMessage();
   }
 
   lineSensors.read(lineSensorValues);
@@ -235,23 +186,6 @@ void loop()
     printProximity();
     readEncoders(true);
   }
- /*
-    switch(sensorTurn){
-      case 1:
-        printLineSensors(lineSensorValues[0], lineSensorValues[1], lineSensorValues[2]);
-        sensorTurn = 2;
-      break;
-      case 2:
-        printProximity();
-        sensorTurn = 3;
-      break;
-      case 3: 
-        readEncoders(true);
-        sensorTurn = 1;
-      break;
-      }
-      */
-
 
   switch(driveMode){
     case 1:
@@ -271,35 +205,6 @@ void loop()
       break;
 
   }
-  //while(noSensors have been detected run mode)
-/*
-  if(!manualTakeOver){
-    if(test)
-    {
-      //buttonB.waitForButton();
-      //proximityPersonCheck();
-
-
-      //forward(0.8);
- 
-      //buttonB.waitForButton();
-      //turn('L', 2);
-      //test = false;
-    }else{
-      //runModeThree();
-      runModeTwo();
-
-          
-    }   
-
-
-  }else{
-
-  
-
-  }*/
 
   incomingMessage = false;
-
-
 }

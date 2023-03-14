@@ -6,10 +6,10 @@
 // These might need to be tuned for different motor types.
 uint16_t REVERSE_SPEED   =  50;  // 0 is stopped, 400 is full speed
 uint16_t TURN_SPEED      =  50;
-uint16_t FORWARD_SPEED      =  80;
-uint16_t maneuver_speed = 100;
-uint16_t REVERSE_DURATION =  200;  // ms
-uint16_t TURN_DURATION   = 300; // ms
+uint16_t FORWARD_SPEED   =  80;
+//uint16_t maneuver_speed = 100;
+//uint16_t REVERSE_DURATION =  200;  // ms
+//uint16_t TURN_DURATION   = 300; // ms
 
 // Motor speed when turning.  400 is the max speed.
 //const uint16_t TURN_SPEED  = 100;
@@ -19,7 +19,7 @@ void drive(int leftMotor,int rightMotor){
     motors.setSpeeds(leftMotor, rightMotor);
   }
 }
-
+/*
 int crash_alert = 0;
 void thresholdCheck(bool ignoreLeft, bool ignoreRight){//bool ignoreLeft, bool ignoreRight
  lineSensors.read(lineSensorValues);
@@ -39,39 +39,39 @@ void thresholdCheck(bool ignoreLeft, bool ignoreRight){//bool ignoreLeft, bool i
     
   }
 
-}
+}*/
 
-
+int movedelay = 70;
 
 void manualMove(char command, bool partAutomated){
     switch (command){
-        case 'A':
+        case 'D':
           ledYellow(1);
-          motors.setLeftSpeed(speed);
-          motors.setRightSpeed(speed*-1);
+          motors.setLeftSpeed(FORWARD_SPEED);
+          motors.setRightSpeed(FORWARD_SPEED*-1);
 
-          if(!partAutomated){delay(70);}
+          if(!partAutomated){delay(movedelay);}
           break;
         case 'S':
           ledYellow(1);
-          motors.setLeftSpeed(speed*-1);
-          motors.setRightSpeed(speed*-1);
+          motors.setLeftSpeed(FORWARD_SPEED*-1);
+          motors.setRightSpeed(FORWARD_SPEED*-1);
 
-          if(!partAutomated){delay(70);}
+          if(!partAutomated){delay(movedelay);}
           break;
-        case 'D':
+        case 'A':
           ledRed(1);
-          motors.setRightSpeed(speed);
-          motors.setLeftSpeed(speed*-1);
+          motors.setRightSpeed(FORWARD_SPEED);
+          motors.setLeftSpeed(FORWARD_SPEED*-1);
 
-          if(!partAutomated){delay(70);}
+          if(!partAutomated){delay(movedelay);}
           break;
         case 'W':
           ledRed(1);
-          motors.setLeftSpeed(speed);
-          motors.setRightSpeed(speed);
+          motors.setLeftSpeed(FORWARD_SPEED);
+          motors.setRightSpeed(FORWARD_SPEED);
 
-          if(!partAutomated){delay(70);}
+          if(!partAutomated){delay(movedelay);}
           break;
         default:
           motors.setLeftSpeed(0);
@@ -180,9 +180,9 @@ void turn(char dir, float angle,bool thresholds)
     if(motor_on){
       while((int32_t)turnAngle > -turnAngle45 * angle )
       {
-        if( thresholds){
+       /* if( thresholds){
           thresholdCheck(true, false);
-        }
+        }*/
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
         turnSensorUpdate();
       }
@@ -200,9 +200,9 @@ void turn(char dir, float angle,bool thresholds)
     if(motor_on){
       while((int32_t)turnAngle < turnAngle45 * angle)
       {
-        if( thresholds){
+       /* if( thresholds){
           thresholdCheck(true, false);
-        }
+        }*/
         //printGyro((((int32_t)turnAngle >> 16) * 360) >> 16);
         turnSensorUpdate();
       }
@@ -242,7 +242,7 @@ void reverse(float distance){
   int16_t startingCount = countsRight;
   //printConsoleVariable("Reversing");
   if(motor_on){
-    while((int32_t)countsRight > (startingCount - cpr) && errorRight!=true  && !maneuver_crash)//&& errorLeft != true
+    while((int32_t)countsRight > (startingCount - cpr) && errorRight!=true)//&& errorLeft != true
     {
       //thresholdCheck();
       //countsLeft = encoders.getCountsLeft();
@@ -257,7 +257,7 @@ void reverse(float distance){
   //printConsoleVariable("Finished Reversing");
 }
 
-
+/*
 void forward(float distance){
 
   int cpr = (float)750 * (float)distance;
@@ -271,9 +271,9 @@ void forward(float distance){
   int16_t startingCount = countsRight;
   //printConsoleVariable("Forward:" + startingCount);
   if(motor_on){
-    while((int32_t)countsRight < (startingCount + cpr) && errorRight!=true && !maneuver_crash)//&& errorLeft != true 
+    while((int32_t)countsRight < (startingCount + cpr) && errorRight!=true )//&& errorLeft != true 
     {
-      thresholdCheck(true,true);
+      //thresholdCheck(true,true);
       //countsLeft = encoders.getCountsLeft();
       countsRight = encoders.getCountsRight();
       
@@ -284,5 +284,5 @@ void forward(float distance){
   }
   drive(0,0);
   //printConsoleVariable("Finished: " + String(countsRight) + " : " + String(cpr * distance));
-}
+}*/
 
