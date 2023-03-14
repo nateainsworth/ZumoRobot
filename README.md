@@ -72,17 +72,17 @@ Full autonomous mode drives the robot using a set of conditions to work out it's
 
 # Manual GUI Commands
 Sending commands to the Zumo using the manual command field.
-    - Turn left `<A>`
-    - Turn Right `<D>`
-    - Go Forward `<W>`
-    - Go Backward `<S>`
-    - Load Mode One `<M:1>`
-    - Load Mode Two `<M:2>`
-    - Load Mode Three `<M:3>`
-    - Set left and right min threshold `<I:500,600>` 500 = left and 600 = right
-    - Set left middle and right max threshold `<O:500,600,700>` 500 = left, 600 = right, 700 = front / middle
-    - Set Speed `<U:200>` 200 being the new speed
-    - Disable Motor `<M:4>`
+  - Turn left `<A>`. 
+  - Turn Right `<D>`. 
+  - Go Forward `<W>`. 
+  - Go Backward `<S>`. 
+  - Load Mode One `<M:1>`. 
+  - Load Mode Two `<M:2>`. 
+  - Load Mode Three `<M:3>`. 
+  - Set left and right min threshold `<I:500,600>` 500 = left and 600 = right.  
+  - Set left middle and right max threshold `<O:500,600,700>` 500 = left, 600 = right, 700 = front / middle. 
+  - Set Speed `<U:200>` 200 being the new speed. 
+  - Disable Motor `<M:4>`. 
 
 
 # References
