@@ -53,7 +53,7 @@ void updateState(State changeTo){
         previous_state = state;
     }
     state = changeTo;
-
+/*
     switch(changeTo){
         case 0: printConsoleVariable("Starting"); break;
         case 1: printConsoleVariable("FollowingLeft"); break;
@@ -70,7 +70,7 @@ void updateState(State changeTo){
         case 12: printConsoleVariable("CorridorReverse"); break;
         case 13: printConsoleVariable("Waiting for console"); break;
         default: printConsoleVariable("Error State");
-    }
+    }*/
 }
 
 

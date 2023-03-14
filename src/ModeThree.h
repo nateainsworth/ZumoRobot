@@ -13,13 +13,14 @@ void automation(){
 
             if(currentTime - lastPersonCheckMillis >= proximityPeriod)
             {
-                lastPersonCheckMillis = currentTime;
+              lastPersonCheckMillis = currentTime;
             }
         }else if(state == Scanning){
             drive(0,0);
             proximityPersonCheck(false);
         }else if(state == RightCornering){
             turn('R', 2, false);
+            printConsoleVariable("right corner");
 
             if(previous_state == FollowingLeft){
                 lostLeft = 0;
@@ -33,6 +34,7 @@ void automation(){
             }
 
         }else if(state == LeftCornering){
+            printConsoleVariable("left corner");
             turn('L', 1.9, false);
             if(previous_state == CorridorReverse){
               updateState(FindLeft);
@@ -53,6 +55,7 @@ void automation(){
         }else if(state == CorridorReverse){
             reverse(0.2);
             updateState(LeftCornering);
+            printConsoleVariable("Entering corridor");
         }
     //No detection of a line 
     }else{
@@ -71,7 +74,6 @@ void automation(){
             drive(0,0);
             proximityPersonCheck(false);
         }else if(state == FindLeft){
-            printConsoleVariable("Find the left" + lostLeft);
             turn('l', 1,false);
             //Still didn't find left
             if(previous_state == FollowingLeft){
@@ -81,13 +83,13 @@ void automation(){
             if(lostLeft  >= 4 ){
                 turn('O', lostLeft, false);
                 lostLeft = 0;
-                
                 // check forward until distance reached
                 updateState(CheckForward);
                 startingDistance = encoders.getCountsRight();
             }//else leave to find left
             
         }else if(state == LeftCornering){
+            printConsoleVariable("left corner");
             turn('L', 1.9, false);
              if(previous_state == CorridorReverse){
                 updateState(FindLeft);
@@ -99,7 +101,8 @@ void automation(){
         }else if(state == LosingLeftLine){
             turn('I', 1,false);
         }else if(state == CorrectLeft){
-            updateState(FindLeft);
+          //TODO test thisonly occured on home circut
+          updateState(FindLeft);
         }else if(state == CorrectRight){
           turn('I', 1, false);
           if(state == ForwardFindLeft){
@@ -140,6 +143,7 @@ void automation(){
                 // did distance still no hit
                 updateState(FindLeft);
                 drive(0,0);
+                printConsoleVariable("past room on left");
             }
         }
     }
