@@ -27,6 +27,10 @@ int QTR_THRESHOLD_RIGHT  = 400;
 //TODO SET TO 0 
 int driveMode = 1;
 
+
+bool modeTwoTakeOver = false;
+
+
 // Drive variables
 bool left_track = false;
 bool motor_on = true;
@@ -79,6 +83,7 @@ void handleIncomingMessage(){
             break;
           case '2':
             state = FindLeft;
+            modeTwoTakeOver = true;
             previous_state = Starting;
             driveMode = 2;
             break;

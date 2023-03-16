@@ -124,6 +124,8 @@ void turn(char dir, float angle,bool thresholds)
       {
         turnSensorUpdate();
       }
+      //int previousDistance = encoders.getCountsAndResetRight();
+      //printMovementUpdate("s",previousDistance,"R",90);
     }
     
     sensorIndex = 1;
@@ -136,6 +138,8 @@ void turn(char dir, float angle,bool thresholds)
       {
         turnSensorUpdate();
       }
+      //int previousDistance = encoders.getCountsAndResetRight();
+      //printMovementUpdate("s",previousDistance,"L",90);
     }
     sensorIndex = 1;
     break;

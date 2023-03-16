@@ -78,6 +78,7 @@ void printConsoleVariable(String variable){
     variable.c_str()
   );
   Serial1.println(buffer);
+  Serial.println(buffer);
 
 }
 

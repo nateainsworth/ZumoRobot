@@ -14,14 +14,11 @@ void automation(){
             if(currentTime - lastPersonCheckMillis >= proximityPeriod)
             {
               lastPersonCheckMillis = currentTime;
+              proximityPersonCheck(false);
             }
-        }else if(state == Scanning){
-            drive(0,0);
-            proximityPersonCheck(false);
         }else if(state == RightCornering){
             turn('R', 2, false);
-            printConsoleVariable("right corner");
-
+            printConsoleVariable("Right cornering");
             if(previous_state == FollowingLeft){
                 lostLeft = 0;
                 updateState(FindLeft);
@@ -34,8 +31,8 @@ void automation(){
             }
 
         }else if(state == LeftCornering){
-            printConsoleVariable("left corner");
             turn('L', 1.9, false);
+            printConsoleVariable("Left cornering");
             if(previous_state == CorridorReverse){
               updateState(FindLeft);
               startingDistance = encoders.getCountsRight();
@@ -53,14 +50,13 @@ void automation(){
             updateState(previous_state);
           }
         }else if(state == CorridorReverse){
-            reverse(0.2);
+            reverse(0.2); 
             updateState(LeftCornering);
             printConsoleVariable("Entering corridor");
         }
     //No detection of a line 
     }else{
         if(state == FollowingLeft){
-          // refind left
           updateState(FindLeft);
           currentTime = millis();
 
@@ -70,9 +66,6 @@ void automation(){
             proximityPersonCheck(false);
           }
            
-        }else if(state == Scanning){
-            drive(0,0);
-            proximityPersonCheck(false);
         }else if(state == FindLeft){
             turn('l', 1,false);
             //Still didn't find left
@@ -98,8 +91,6 @@ void automation(){
               startingDistance = encoders.getCountsRight();
             }
         
-        }else if(state == LosingLeftLine){
-            turn('I', 1,false);
         }else if(state == CorrectLeft){
           //TODO test thisonly occured on home circut
           updateState(FindLeft);
@@ -150,5 +141,5 @@ void automation(){
 }
 
 void runModeThree(){
-    automation();
+  automation();
 }
